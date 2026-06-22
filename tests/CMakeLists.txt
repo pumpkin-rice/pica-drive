@@ -5,6 +5,7 @@ if(CMAKE_C_STANDARD LESS 11)
 endif()
 
 add_executable(test_bldc_foc EXCLUDE_FROM_ALL)
+# add_executable(test_bldc_foc)
 
 message(STATUS "Ready to build test_bldc_foc")
 
@@ -17,6 +18,7 @@ target_include_directories(test_bldc_foc
 	PRIVATE
 		../include
 		../src
+		..
 )
 
 target_sources(test_bldc_foc

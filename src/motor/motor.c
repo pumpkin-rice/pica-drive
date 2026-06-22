@@ -11,38 +11,7 @@
 
 #include "motor.h"
 #include <string.h>
-
-extern int bldc_init(motor_obj *motor);
-
-int motor_init(motor_obj *motor, struct motor_parameters *param)
-{
-    int ret;
-
-    assert(motor && param);
-
-    memset(motor, 0, sizeof(*motor));
-
-    motor->param = param;
-
-    switch (param->type) {
-    case MOTOR_TYPE_GIMBAL:
-    case MOTOR_TYPE_ACIM:
-    case MOTOR_TYPE_HIGH_CURRENT:
-        ret = bldc_init(motor);
-        if (ret < 0) {
-            goto exit;
-        }
-        break;
-
-    case MOTOR_TYPE_INVALID:
-    default:
-        // init failed;
-        assert(0);
-    }
-
-exit:
-    return ret;
-}
+#include <math.h>
 
 void motor_init_param_by_default(struct motor_parameters *conf)
 {

@@ -15,12 +15,10 @@
 #include "bldc.h"
 #include "motor/current_controller.h"
 
-#include "utils/math.h"
+#include "private/math.h"
 
 #include <string.h>
 #include <assert.h>
-
-typedef struct __bldc_private bldc_private_t;
 
 static int foc_update(current_controller_obj *obj);
 
@@ -117,7 +115,6 @@ int foc_update(current_controller_obj *obj)
     struct foc *foc = curr_obj2foc(obj);
     struct bldc *bldc = motor2bldc(obj->motor);
     struct motor_parameters *param = bldc->param;
-    bldc_private_t *bldc_data = &bldc->__private;
 
     // Load setpoints from previous iteration.
     float id = foc->idq_sp[0];
@@ -218,7 +215,6 @@ int foc_run(current_controller_obj *obj, float time2last_sampling, float time2ne
 {
     struct foc *foc = curr_obj2foc(obj);
     struct bldc *bldc = motor2bldc(foc->motor);
-    bldc_private_t *bldc_data = &bldc->__private;
 
     float i_alpha_meas, i_beta_meas; /*!< 由 abc 电流计算得到的 alpha beta 电流 */
     float id, iq; /*!< 由 abc 电流计算得到的 dq 电流 */
@@ -230,9 +226,9 @@ int foc_run(current_controller_obj *obj, float time2last_sampling, float time2ne
 
     int ret;
 
-    clarke(bldc_data->current_meas[0],
-        bldc_data->current_meas[1],
-        bldc_data->current_meas[2],
+    clarke(bldc->current_phases_meas[0],
+        bldc->current_phases_meas[1],
+        bldc->current_phases_meas[2],
         &i_alpha_meas,
         &i_beta_meas
     );
@@ -317,18 +313,18 @@ int foc_run(current_controller_obj *obj, float time2last_sampling, float time2ne
 
     // genernate svpwm
     // if (!svm(mod_valpha, mod_vbeta,
-    //         &bldc_data->duty_cycle[0],
-    //         &bldc_data->duty_cycle[1],
-    //         &bldc_data->duty_cycle[2]
+    //         &bldc->duty_cycle[0],
+    //         &bldc->duty_cycle[1],
+    //         &bldc->duty_cycle[2]
     //     )
     // ) {
     // 	// TODO: SVPWM generator error
 
     // }
     iclark(mod_valpha, mod_vbeta,
-            &bldc_data->duty_cycle[0],
-            &bldc_data->duty_cycle[1],
-            &bldc_data->duty_cycle[2]
+            &bldc->duty_cycle[0],
+            &bldc->duty_cycle[1],
+            &bldc->duty_cycle[2]
         );
 
     foc->vdq_final[0] = mod2vbus * mod_vd;

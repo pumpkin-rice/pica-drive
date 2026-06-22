@@ -32,14 +32,6 @@
 #define squre(_x)        ((_x) * (_x))
 #endif
 
-#ifndef min
-#define min(_a, _b)      ((_a) > (_b) ? (_a) : (_b))
-#endif
-
-#ifndef max
-#define max(_a, _b)      ((_a) > (_b) ? (_b) : (_a))
-#endif
-
 #ifndef clamp
 #define clamp(_v, _l, _h) \
     ((_v) > (_h) ? (_h) : (_v) < (_l) ? (_l) : (_v))
