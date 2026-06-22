@@ -25,8 +25,8 @@ struct foc
 
     float vdq_sp[2]; /*!< V */
     float idq_sp[2]; /*!< A */
+    
     float idq_meas[2]; /*!< A */
-
     float i_alpha_beta_meas[2]; /*!< A */
 
     float vdq_final[2];
