@@ -53,6 +53,11 @@ static inline float wrap_pm(float x, float y) {
     return x - intval * y;
 }
 
+static inline float wrap_pm_pi(float rad)
+{
+    return wrap_pm(rad, 2*M_PI);
+}
+
 static inline float fmodf_pos(float x, float y)
 {
     float res = wrap_pm(x, y);

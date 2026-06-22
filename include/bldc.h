@@ -66,8 +66,8 @@ static inline void bldc_sample_current_handler(struct bldc *bldc,
     float shunt_gain = bldc->param->shunt_conductance * bldc->phase_current_rev_gain;
 
     c[0] = shunt_volt[0] * shunt_gain;
-    c[1] = shunt_volt[0] * shunt_gain;
-    c[2] = shunt_volt[0] * shunt_gain;
+    c[1] = shunt_volt[1] * shunt_gain;
+    c[2] = shunt_volt[2] * shunt_gain;
 }
 
 /**
@@ -110,8 +110,8 @@ static inline void bldc_sample_encoder_handler(struct bldc *bldc,
 {
     uint8_t np = bldc->param->pole_pairs;
 
-    bldc->theta_elec = wrap_pm(theta_mech, M_PI);
-    bldc->omega_elec = wrap_pm(omega_mech, M_PI);
+    bldc->theta_elec = wrap_pm_pi(theta_mech * np);
+    bldc->omega_elec = wrap_pm_pi(omega_mech * np);
 }
 
 int bldc_update(struct bldc *bldc);
