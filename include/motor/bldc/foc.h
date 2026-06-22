@@ -13,8 +13,6 @@
 #define _PICA_MOTOR_CURRENT_CONTROLLER_H_
 
 #include "motor/current_controller.h"
-#include "motor/common/alpha_beta.h"
-#include "motor/common/dq.h"
 
 #include <stdint.h>
 #include <stdbool.h>

@@ -12,7 +12,7 @@
 #ifndef _MOTOR_FOC_PARK_H_
 #define _MOTOR_FOC_PARK_H_
 
-#include "utils/math.h"
+#include "private/math.h"
 
 #ifdef __cplusplus
  extern "C" {

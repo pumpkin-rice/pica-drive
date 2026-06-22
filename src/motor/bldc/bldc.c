@@ -10,58 +10,27 @@
  */
 
 #include "bldc.h"
-#include "utils/math.h"
+#include "private/math.h"
 #include <assert.h>
 #include <stddef.h>
 
-typedef struct __bldc_private bldc_private;
-
-static int  bldc_update(motor_obj *motor);
-
-static void bldc_sample_current_handler(motor_obj *motor, const float *shunt_volt);
-
-static void bldc_sample_current_calibrator_handler(motor_obj *motor, const float calib[], float measure_period);
-
-static void bldc_sample_voltage_handler(motor_obj *motor, const float *voltage_phases);
-
-static int bldc_update_config(motor_obj *motor);
-
-static int bldc_do_checks(motor_obj *motor);
-
-static inline void bldc_get_duty_cycles(motor_obj *motor, float *duty_cycle)
-{
-	float *data = ((struct bldc *)motor)->__private.duty_cycle;
-
-	duty_cycle[0] = data[0];
-	duty_cycle[1] = data[1];
-	duty_cycle[2] = data[2];
-}
-
-static float bldc_get_max_available_torque(motor_obj *motor);
-
-extern int foc_init(current_controller_obj *obj, motor_obj *motor);
+extern int foc_init(current_controller_obj *obj, struct bldc *bldc);
 
 static void calc_phase_current_gain(struct bldc *bldc);
 
-int bldc_init(motor_obj *motor)
+int bldc_init(struct bldc *bldc, struct motor_parameters *param)
 {
-	struct bldc *bldc = motor2bldc(motor);
 	int ret = 0;
 
-	bldc->update = bldc_update;
-	bldc->sample_current_handler = bldc_sample_current_handler;
-	bldc->sample_current_calibrator_handler =
-			bldc_sample_current_calibrator_handler;
-	bldc->sample_voltage_handler = bldc_sample_voltage_handler;
-	bldc->update_config = bldc_update_config;
-	bldc->get_duty_cycles = bldc_get_duty_cycles;
-	bldc->get_max_available_torque = bldc_get_max_available_torque;
-	bldc->do_checks = bldc_do_checks;
+	if (!bldc || !param) {
+		return -1;
+	}
+
+	bldc->param = param;
 
 	switch (bldc->param->ctrl_type) {
 	case MOTOR_CTRL_TYPE_FOC:
-		motor->current_controller = &bldc_current_obj(bldc);
-		ret = foc_init(motor->current_controller, motor);
+		ret = foc_init(&bldc->current_controller, bldc);
 		break;
 
 	case MOTOR_CTRL_TYPE_INVALID:
@@ -81,54 +50,25 @@ exit:
 	return ret;
 }
 
-int bldc_update(motor_obj *motor)
+int bldc_update(struct bldc *bldc)
 {
-	struct bldc *bldc = motor2bldc(motor);
-	current_controller_obj *current_controller = &bldc_current_obj(bldc);
-
-	current_controller->update(current_controller);
+	bldc->current_controller.update(&bldc->current_controller);
 }
 
-int bldc_run(motor_obj *motor)
+void bldc_sample_current_calibrator_handler(struct bldc *bldc, const float calib[], float measure_period)
 {
-	struct bldc *bldc = motor2bldc(motor);
-	current_controller_obj *current_controller = &bldc_current_obj(bldc);
-
-	current_controller->update(current_controller);
-}
-
-void bldc_sample_current_handler(motor_obj *motor, const float *shunt_volt)
-{
-	float *c = motor2bldc(motor)->__private.current_meas;
-
-	// float shunt_gain = motor->param->shunt_conductance * motor->phase_current_rev_gain;
-
-	float shunt_gain = 1.f;
-
-	// TODO: calibrate current
-
-	// 实际电压： adc 测得电压* motor->phase_current_rev_gain
-	// 实际电流： 实际电压 / 电阻 
-	c[0] = shunt_volt[0] * shunt_gain;
-	c[1] = shunt_volt[1] * shunt_gain;
-	c[2] = shunt_volt[2] * shunt_gain;
-}
-
-void bldc_sample_current_calibrator_handler(motor_obj *motor, const float calib[], float measure_period)
-{
-	bldc_private *motor_data = &bldc_private(motor2bldc(motor));
-	float *c = motor_data->dc_current_calibrator;
+	float *c = bldc->dc_current_calibrator;
 
 	if (NULL == calib) {
 		c[0] = 0.f;
 		c[1] = 0.f;
 		c[2] = 0.f;
 
-		motor_data->current_calibrator_running_since = 0.f;
+		bldc->current_calibrator_running_since = 0.f;
 
 	} else {
-		const float k_filter = min(
-			measure_period / motor->param->dc_current_calibrator_filter_tau, 
+		const float k_filter = fminf(
+			measure_period / bldc->param->dc_current_calibrator_filter_tau, 
 			1.f
 		);
 
@@ -136,50 +76,27 @@ void bldc_sample_current_calibrator_handler(motor_obj *motor, const float calib[
 		c[1] += (calib[1] - c[1]) * k_filter;
 		c[2] += (calib[2] - c[2]) * k_filter;
 
-		motor_data->current_calibrator_running_since += measure_period;
+		bldc->current_calibrator_running_since += measure_period;
 	}
-}
-
-void bldc_sample_voltage_handler(motor_obj *motor, const float *voltage_phases)
-{
-	if (voltage_phases) {
-		float *v = motor2bldc(motor)->__private.voltage_meas;
-
-		v[0] = voltage_phases[0];
-		v[1] = voltage_phases[1];
-		v[2] = voltage_phases[2];
-	}
-}
-
-void bldc_sample_encoder_handler(motor_obj *motor, float theta_mach, float omega_mach)
-{
-
-}
-
-int bldc_update_config(motor_obj *motor)
-{
-	motor->current_controller->update_config(motor->current_controller);
 }
 
 static float get_effective_current_limit(struct bldc *bldc);
 
-int bldc_do_checks(motor_obj *motor)
+int bldc_do_checks(struct bldc *bldc)
 {
-	struct bldc *bldc = motor2bldc(motor);
-
 	get_effective_current_limit(bldc);
 }
 
-float bldc_get_max_available_torque(motor_obj *motor)
+float bldc_get_max_available_torque(struct bldc *bldc)
 {
-	struct motor_parameters *param = motor->param;
+	struct motor_parameters *param = bldc->param;
 	float torque;
 
 	if (MOTOR_TYPE_ACIM == param->type) {
 		// torque = motor->effective_current_limit * param->torque_constant * axis_->acim_estimator_.rotor_flux_;
 
 	} else {
-		torque = motor_data(motor).effective_current_limit * param->torque_constant;
+		torque = bldc->effective_current_limit * param->torque_constant;
 	}
 
 	torque = clamp(torque, 0.f, param->torque_limit);
@@ -195,10 +112,10 @@ float get_effective_current_limit(struct bldc *bldc)
 
 	// Hardware limit
 	if (MOTOR_TYPE_GIMBAL == param->type) {
-		current_limit = min(current_limit, 0.98f * FRAC_1_SQRT3 * (bldc)->bus_voltage_meas); //gimbal motor is voltage control
+		current_limit = fminf(current_limit, 0.98f * FRAC_1_SQRT3 * (bldc)->bus_voltage_meas); //gimbal motor is voltage control
 	
 	} else {
-		current_limit = min(current_limit, 
+		current_limit = fminf(current_limit, 
 							bldc->max_allowed_current);
 	}
 

@@ -110,29 +110,25 @@ void BLDC::run()
 {
     double ts_diff = m_ts_now - m_ts_last;
 
-    motor_obj *motor = (motor_obj *)&m_bldc;
-
     // 更新传感器参数
-    motor_sample_voltage_handler(motor, NULL, m_vbus);
-    motor_sample_encoder_handler(motor, m_theta_mach, m_omega_mach);
+    bldc_sample_voltage_handler(&m_bldc, NULL, m_vbus);
+    bldc_sample_encoder_handler(&m_bldc, m_theta_mach, m_omega_mach);
 
     // 更新采样电流
-    motor_sample_current_handler(motor, m_voltage_shunt);
+    bldc_sample_current_handler(&m_bldc, m_voltage_shunt);
 
-    motor_do_checks(motor);
+    bldc_do_checks(&m_bldc);
 
     // 更新电机控制环参数
-    motor_set_torque(motor, m_torque);
+    bldc_set_torque(&m_bldc, m_torque);
 
-    motor_update(motor);
+    bldc_update(&m_bldc);
 
     // 更新校正电流
-    motor_sample_current_calibrator_handler(motor, NULL, ts_diff);
+    bldc_sample_current_calibrator_handler(&m_bldc, NULL, ts_diff);
     
     // 运行电流环
-    motor_run_current_loop(motor, ts_diff, ts_diff);
-
-    motor_get_duty_cycles(motor, m_duty_cycles);
+    bldc_run(&m_bldc, ts_diff, ts_diff);
 }
 
 void BLDC::init()
@@ -157,7 +153,7 @@ void BLDC::init()
 
     params->current_controller_bandwidth = 2 * M_PI / fminf(Tq, Td);
 
-    motor_init((motor_obj *)&m_bldc, &m_motor_param);
+    bldc_init(&m_bldc, &m_motor_param);
 }
 
 void BLDC::sample()
@@ -202,13 +198,14 @@ void BLDC::sample()
 void BLDC::fresh_output()
 {
     //   [iabc, ialpha_beta, idq, vdq, v_alpha_beta_final, duty_cycle] = mex_picadrive_foc_current_loop(ts, theta_elec, omega_elec, iabc, target);
-
-    float *iabc = bldc_dbg_current_measured(&m_bldc);
-    float *i_alpha_beta_meas = foc_dbg_i_alpha_beta_measured(&(bldc_get_foc(&m_bldc)));
-    float *idq_meas = foc_dbg_idq_meas(&(bldc_get_foc(&m_bldc)));
-    float *vdq = foc_dbg_vdq(&(bldc_get_foc(&m_bldc)));
-    float *v_alpha_beta_final = foc_dbg_v_alpha_beta_final(&(bldc_get_foc(&m_bldc)));
-    float *duty_cycle = bldc_get_duty_cycle(&m_bldc);
+    struct foc *foc = bldc_get_current_controller_foc(&m_bldc);
+    
+    const float *iabc = bldc_get_current_phase_meas(&m_bldc);
+    const float *i_alpha_beta_meas = foc_dbg_i_alpha_beta_measured(foc);
+    const float *idq_meas = foc_dbg_idq_meas(foc);
+    const float *vdq = foc_dbg_vdq(foc);
+    const float *v_alpha_beta_final = foc_dbg_v_alpha_beta_final(foc);
+    const float *duty_cycle = bldc_get_duty_cycle(&m_bldc);
 }
 
 int main(int argc, char const *argv[])
