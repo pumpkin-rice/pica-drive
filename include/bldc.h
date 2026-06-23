@@ -111,7 +111,7 @@ static inline void bldc_sample_encoder_handler(struct bldc *bldc,
     uint8_t np = bldc->param->pole_pairs;
 
     bldc->theta_elec = wrap_pm_pi(theta_mech * np);
-    bldc->omega_elec = wrap_pm_pi(omega_mech * np);
+    bldc->omega_elec = omega_mech * np;
 }
 
 int bldc_update(struct bldc *bldc);
@@ -125,12 +125,13 @@ int bldc_update(struct bldc *bldc);
  * @return int 
  */
 static inline int bldc_run(struct bldc *bldc,
-        float time2last_sampling, float time2next_output)
+        float time2last_sampling, float time2next_output, float period)
 {
     return bldc->current_controller.run(
         &bldc->current_controller,
         time2last_sampling,
-        time2next_output
+        time2next_output,
+        period
     );
 }
 
