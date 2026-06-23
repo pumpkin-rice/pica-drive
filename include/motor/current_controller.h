@@ -16,7 +16,7 @@
 struct { \
     int (*update_config)(current_controller_obj *motor); \
     int (*update)(current_controller_obj *obj); \
-    int (*run)(current_controller_obj *obj, float time2last_sampling, float time2next_output); \
+    int (*run)(current_controller_obj *obj, float time2last_sampling, float time2next_output, float period); \
     motor_obj *motor; \
     bool current_loop_enabled; /*!< true: FOC runs in current control mode using Idq_sp, false: FOC runs in voltage control mode using Vdq_sp */ \
 }

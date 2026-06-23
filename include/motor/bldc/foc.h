@@ -58,6 +58,16 @@ inline float *foc_dbg_idq_meas(struct foc *foc)
     return foc->idq_meas;
 }
 
+inline float foc_dbg_id_err(struct foc *foc)
+{
+    return foc->id_pi.err_prev;
+}
+
+inline float foc_dbg_iq_err(struct foc *foc)
+{
+    return foc->iq_pi.err_prev;
+}
+
 inline float *foc_dbg_i_alpha_beta_measured(struct foc *foc)
 {
     return foc->i_alpha_beta_meas;

@@ -30,7 +30,7 @@ static int foc_update(current_controller_obj *obj);
  * @param[in] time2next_output time to next pwm output, second
  * @return int 
  */
-static int foc_run(current_controller_obj *obj, float time2last_sampling, float time2next_output);
+static int foc_run(current_controller_obj *obj, float time2last_sampling, float time2next_output, float period);
 
 static int foc_update_controller_gain(current_controller_obj *ctrl)
 {
@@ -211,7 +211,7 @@ static inline float update_dq_filter(float meas, float filted, float gain)
     return gain * (meas - filted) + filted;
 }
 
-int foc_run(current_controller_obj *obj, float time2last_sampling, float time2next_output)
+int foc_run(current_controller_obj *obj, float time2last_sampling, float time2next_output, float period)
 {
     struct foc *foc = curr_obj2foc(obj);
     struct bldc *bldc = motor2bldc(foc->motor);
@@ -294,9 +294,12 @@ int foc_run(current_controller_obj *obj, float time2last_sampling, float time2ne
             pi_q->integral *= 0.99f;
 
         } else {
-            pi_d->integral += id_err * (pi_d->ki * time2last_sampling);
-            pi_q->integral += iq_err * (pi_q->ki * time2last_sampling);
+            pi_d->integral += id_err * (pi_d->ki * period);
+            pi_q->integral += iq_err * (pi_q->ki * period);
         }
+
+        pi_d->err_prev = id_err;
+        pi_q->err_prev = iq_err;
 
     } else {
         // voltage control mode
