@@ -10,7 +10,7 @@
  */
 
 #include "velocity_trapezoidal.hpp"
-#include "math.hpp"
+#include "private/math.hpp"
 
 using namespace pica;
 
@@ -40,7 +40,7 @@ bool VelocityTrapezoidal::plan(float pos_sp, float pos_init, float vel_init)
     }
 
     // 计算加速,减速时间
-    time_accel = (m_vel_uniform - m_vel_init)/m_accel;
+    time_accel = (m_vel_uniform - vel_init)/m_accel;
     time_decel = -m_vel_uniform/m_decel;
 
     // 加速距离+减速距离
@@ -74,6 +74,8 @@ bool VelocityTrapezoidal::plan(float pos_sp, float pos_init, float vel_init)
     m_pos_init = pos_init;
     m_pos_sp   = pos_sp;
     m_vel_init = vel_init;
+
+    m_pos_delta = delta_pos + pos_init;
     m_pos_accel_final = pos_init
                         + vel_init * time_accel
                         + .5f * m_accel * square(time_accel);
@@ -96,12 +98,12 @@ const Trajectory& VelocityTrapezoidal::evaluate(float t)
         m_state.a = m_accel;
 
     } else if (t < m_T2) { // 匀速过程
-        m_state.x = m_pos_accel_final + m_vel_uniform * (t-m_T2);
+        m_state.x = m_pos_accel_final + m_vel_uniform * (t - m_T1);
         m_state.v = m_vel_uniform;
         m_state.a = 0.f;
 
     } else if (t < m_T3) { // 匀减速过程
-        float td = t - m_T2;
+        float td = t - m_T3;
         m_state.x = m_pos_delta + 0.5f * m_decel * square(td);
         m_state.v = m_decel * td;
         m_state.a = m_decel;

@@ -15,6 +15,7 @@
 
 namespace pica
 {
+
 template<typename T>
 constexpr T square(T v)
 {
@@ -28,9 +29,9 @@ constexpr T cubic(T v)
 }
 
 template<typename T>
-constexpr T sign_hard(T v1)
+constexpr T sign_hard(T v)
 {
-    return std::signbit(v) ? (T)(1) : (T)(-1);
+    return std::signbit(v) ? (T)(-1) : (T)(1);
 }
 
 } // namespace pica

@@ -30,14 +30,22 @@ struct Trajectory
 class TrajectoryPlanner
 {
 public:
-    TrajectoryPlanner(float setpoint_pos, float initial_vel = 0.f, float initial_pos = 0.f);
+    explicit TrajectoryPlanner(float vel_max, float accel_max, float jerk_max)
+        : m_jerk_max(jerk_max)
+        , m_accel_max(accel_max)
+        , m_vel_max(vel_max)
+        {}
     ~TrajectoryPlanner() = default;
 
     virtual bool plan(float pos_sp, float pos_init, float vel_init) = 0;
 
+    /**
+     * @brief 更新当前时刻轨迹
+     * 
+     * @param[in] t 当前轨迹时间： 从调用 plan() 开始计时
+     * @return const Trajectory& 
+     */
     virtual const Trajectory& evaluate(float t) = 0;
-
-    void reset(float accel, float vel, float pos);
 
     float getMaxJerk() const  { return m_jerk_max; }
     void setmaxJerk(float j)  { m_jerk_max = j; }
@@ -65,28 +73,43 @@ public:
      * @param d direction
      * @retval Trajectory
      */
-    virtual Trajectory evaluatePoly(float j, float a0, float v0, float x0, float t, int d) {};
+    virtual Trajectory evaluatePoly(float j, float a0, float v0, float x0, float t, int d) { return Trajectory{}; };
+
+    void reset(float jerk_max, float accel_max, float vel_max)
+    {
+        m_jerk_max  = jerk_max;
+        m_accel_max = accel_max;
+        m_vel_max   = vel_max;
+
+        m_pos_delta = m_pos_sp = 0.f;
+        m_vel_uniform = 0.f;
+        m_accel = m_decel = 0.f;
+        m_pos_accel_final = 0.f;
+
+        m_pos_init = m_vel_init = 0.f;
+        
+        m_T1 = m_T2 = m_T3 = 0.f;
+    }
 
 protected:
 
-    Trajectory m_state;
+    Trajectory m_state{0.f};
 
-    float m_pos_delta;
-    float m_pos_sp;
+    float m_pos_delta{0.f};
+    float m_pos_sp{0.f};
 
-    float m_accel;
-    float m_decel;
-    float m_vel_uniform; /*!< 匀速段速度 */
+    float m_accel{0.f};
+    float m_decel{0.f};
+    float m_vel_uniform{0.f}; /*!< 匀速段速度 */
 
-    float m_pos_accel_final; /*!< 加速段完成时刻位置 */
+    float m_pos_accel_final{0.f}; /*!< 加速段完成时刻位置 */
 
     float m_pos_init{0.f};
     float m_vel_init{0.f};
 
     float m_vel_max{0.f};
-    float m_jerk_max{4.f};
-    float m_accel_max{9.8f};
-    float m_direction{-1.f};
+    float m_jerk_max{0.f};
+    float m_accel_max{0.f};
 
     float m_T1{0.f}; /*!< 加速段完成时刻, s */
     float m_T2{0.f}; /*!< 匀速段完成时刻, s */
