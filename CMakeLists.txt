@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 
 project(picadrive)
 
+enable_testing()
 enable_language(C ASM)
 
 # 指定库文件输出路径
@@ -21,5 +22,6 @@ endif()
 
 add_subdirectory(include)
 add_subdirectory(src)
+add_subdirectory(third)
 
 add_subdirectory(tests)
