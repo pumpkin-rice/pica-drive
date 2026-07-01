@@ -54,7 +54,7 @@ public:
     {
         float shunt_gain = m_cfg->shunt_conductance * m_phase_current_rev_gain;
 
-        m_current.set(
+        m_current_meas.set(
             shunt_gain * shunt_volt[0],
             shunt_gain * shunt_volt[1],
             shunt_gain * shunt_volt[2]
@@ -65,7 +65,7 @@ public:
     {
         float *c = m_current_calibrator.raw;
         
-        if (NULL == calibator) {
+        if (nullptr == calibator) {
             c[0] = 0.f;
             c[1] = 0.f;
             c[2] = 0.f;
@@ -91,12 +91,16 @@ public:
     float getMaxAvailableTorque() final;
 
     const float *getDutyCycles() final { return m_duty_cycle.raw; }
+    const float *getPhaseCurrentMeasured() { return m_current_meas.raw;}
+
+    template<typename T>
+    const T *getCurrentController() { return dynamic_cast<T *>(m_current_controller);}
 
 private:
     void calcPhaseCurrentGain();
 
 private:
-    ThreePhase m_current;
+    ThreePhase m_current_meas;
     ThreePhase m_current_calibrator;
     ThreePhase m_duty_cycle;
 

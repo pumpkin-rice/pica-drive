@@ -15,6 +15,7 @@
 #include "motor/config.h"
 #include "motor/current_controller.hpp"
 #include "utils/noncopyable.hpp"
+#include "utils/math.h"
 #include <stdint.h>
 
 namespace pica
@@ -64,9 +65,12 @@ public:
     void sampleEncoderHandler(float angle_mach, float angular_velocity_mach)
     {
         float np = m_cfg->pole_pairs;
-        m_angle_elec = angle_mach * np;
-        m_angular_velocity_elec = angular_velocity_mach * np;
+        m_angle_elec            = wrap_pm_pi(angle_mach * np);
+        m_angular_velocity_elec = wrap_pm_pi(angular_velocity_mach * np);
     }
+
+    constexpr float electricalAngle() { return m_angle_elec; }
+    constexpr float electricalAngualrVelocity() { return m_angular_velocity_elec; }
 
     /**
      * @brief 运行控制器
@@ -97,9 +101,6 @@ public:
 
     constexpr uint8_t getMotorType() { return m_cfg->motor_type; }
 
-    constexpr float electricalAngle() { return m_angle_elec; }
-    constexpr float electricalAngualrVelocity() { return m_angular_velocity_elec; }
-
     virtual float getMaxAvailableTorque() = 0;
 
     virtual float getEffectiveCurrentLimit() { return m_effective_current_limit; }
@@ -108,6 +109,8 @@ public:
     {
         return m_torque_sp = t;
     }
+
+    constexpr float getPhaseCurrentRevGain() { return m_phase_current_rev_gain; }
 
 protected:
     void setControllerLoopFunction(CurrentController::ControllerLoopFuncType func,

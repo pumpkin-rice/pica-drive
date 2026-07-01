@@ -38,6 +38,8 @@ bool BLDC::init(motor_config *cfg)
 
     m_current_controller->init(cfg);
 
+    calcPhaseCurrentGain();
+
     return true;
 }
 

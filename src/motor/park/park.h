@@ -112,7 +112,7 @@ struct AlphaBeta
 
 struct DQ
 {
-    float d{0}, q{0};
+    float d{0.f}, q{0.f};
 
     DQ() = default;
 
@@ -129,7 +129,7 @@ struct DQ
         return *this;
     }
 
-    constexpr void reset()
+    void reset()
     {
         d = q = 0.f;
     }
