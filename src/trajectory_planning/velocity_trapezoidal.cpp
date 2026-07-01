@@ -10,7 +10,7 @@
  */
 
 #include "velocity_trapezoidal.hpp"
-#include "private/math.hpp"
+#include "utils/math.h"
 
 using namespace pica;
 

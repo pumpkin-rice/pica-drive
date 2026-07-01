@@ -20,9 +20,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_VERBOSE_MAKEFILE ON)
 endif()
 
-add_subdirectory(include)
 add_subdirectory(src)
 add_subdirectory(third)
-add_subdirectory(utils)
 
 add_subdirectory(tests)

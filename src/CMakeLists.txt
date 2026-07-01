@@ -1,12 +1,14 @@
 # PicaDrive internal cmake file. Do not use it in user top-level project
 
+add_subdirectory(trajectory_planning)
+
 add_library(picadrive STATIC)
 
 set(SRC
-    motor/motor.c
+    motor/config.c
     motor/pwm/svm.c
-    motor/bldc/foc.c
-    motor/bldc/bldc.c
+    motor/bldc/foc.cc
+    motor/bldc/bldc.cc
 )
 
 set_target_properties(picadrive
@@ -17,6 +19,8 @@ set_target_properties(picadrive
 )
 
 target_include_directories(picadrive
+    PUBLIC
+        .
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
@@ -30,5 +34,4 @@ target_sources(picadrive
 
 target_link_libraries(picadrive
     PUBLIC
-        picadrive_include
 )

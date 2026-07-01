@@ -9,15 +9,15 @@
  * 
  */
 
-#include "motor.h"
+#include "motor/config.h"
 #include <string.h>
 #include <math.h>
 
-void motor_init_param_by_default(struct motor_parameters *conf)
+void motor_init_param_by_default(struct motor_config *conf)
 {
     memset(conf, 0, sizeof(*conf));
     
-    conf->type = MOTOR_TYPE_INVALID;
+    conf->motor_type = 0;
 
     conf->pole_pairs = 7;
     conf->phase_resistance = 0.f;

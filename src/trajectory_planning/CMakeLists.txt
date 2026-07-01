@@ -17,6 +17,7 @@ set_target_properties(trajectory_planning
 target_include_directories(trajectory_planning
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+        .. # for utils/math.h
 )
 
 message(STATUS "")
@@ -28,7 +29,7 @@ target_sources(trajectory_planning
 
 target_link_libraries(trajectory_planning
     PUBLIC
-        picadrive_include
+        
 )
 
 enable_testing()
