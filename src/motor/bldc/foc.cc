@@ -178,15 +178,15 @@ bool FOC::Run(CurrentController *ctrl,
         
         idq.park(foc.m_i_alpha_beta_meas, theta_now);
 
-        // if (idq.isValid()) {
-            foc.m_idq_meas = idq;
-        // } else {
-        //     foc.m_idq_meas.d = 1.f;
-        // }
+        if (idq.isValid()) {
+            foc.m_idq_meas.d +=
+                foc.m_idq_meas_filter_k * (idq.d - foc.m_idq_meas.d);
+            foc.m_idq_meas.q +=
+                foc.m_idq_meas_filter_k * (idq.q - foc.m_idq_meas.q);
+        }
 
     } else {
         foc.m_idq_meas.reset();
-        foc.m_idq_meas.q = -1.f;
     }
 
     mod2vbus = (2.f/3.f) * bldc.m_bus_voltage_meas;
