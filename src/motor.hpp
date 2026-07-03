@@ -12,8 +12,9 @@
 #ifndef _PICA_MOTOR_H_
 #define _PICA_MOTOR_H_
 
-#include "motor/config.h"
+#include "motor/config.hpp"
 #include "motor/current_controller.hpp"
+#include "motor/speed_controller.hpp"
 #include "utils/noncopyable.hpp"
 #include "utils/math.h"
 #include <stdint.h>
@@ -24,7 +25,8 @@ namespace pica
 namespace motor
 {
     
-// class CurrentController;
+class SpeedController;
+class CurrentController;
 
 } // namespace motor
 
@@ -34,10 +36,14 @@ namespace motor
  */
 class Motor : Noncopyable
 {
-public:
-    using CurrentController = motor::CurrentController;
+    friend motor::CurrentController;
 
-    virtual bool init(motor_config *cfg)
+public:
+    using SpeedController = motor::SpeedController;
+    using CurrentController = motor::CurrentController;
+    using Config = motor::Config;
+
+    virtual bool init(Config *cfg)
     {
         if (cfg) {
             m_cfg = cfg;
@@ -46,7 +52,14 @@ public:
         return true;
     }
 
-    virtual bool update() = 0;
+    /**
+     * @brief
+     * 
+     * @param[in] period update 运行周期 s
+     * @return true 
+     * @return false 
+     */
+    virtual bool update(float period) = 0;
 
     virtual void sampleCurrentHandler(const float shunt_volt[]) {}
 
@@ -65,28 +78,23 @@ public:
     void sampleEncoderHandler(float angle_mach, float angular_velocity_mach)
     {
         float np = m_cfg->pole_pairs;
-        m_angle_elec            = wrap_pm_pi(angle_mach * np);
-        m_angular_velocity_elec = wrap_pm_pi(angular_velocity_mach * np);
+        m_position_est = wrap_pm_pi(angle_mach * np);
+        m_velocity_est = angular_velocity_mach * np;
     }
-
-    constexpr float electricalAngle() { return m_angle_elec; }
-    constexpr float electricalAngualrVelocity() { return m_angular_velocity_elec; }
 
     /**
      * @brief 运行控制器
      * 
-     * @param[in] theta_mach 
-     * @param[in] omega_mach 
-     * @param[in] time2last_meas 
-     * @param[in] time2next_pwm_output 
+     * @param[in] time2meas 到电流、角度测量时间, s
+     * @param[in] time2pwm_output 当前时刻到下次 PWM 输出时间, s
      * @return true 
      * @return false 
      */
-    bool runControllerLoop(float time2last_meas, float time2next_pwm_output,
+    bool runControllerLoop(float time2meas, float time2pwm_output,
                     float period)
     {
         return m_controller_loop_func(m_current_controller,
-                    time2last_meas, time2next_pwm_output, period
+                    time2meas, time2pwm_output, period
                 );
     }
 
@@ -99,18 +107,25 @@ public:
 
     virtual bool do_checks() { return true; }
 
-    constexpr uint8_t getMotorType() { return m_cfg->motor_type; }
+    int8_t getMotorType() const { return m_cfg->motor_type; }
+    int8_t getCurrentControllerType() const { return m_cfg->current_controller_type; }
 
     virtual float getMaxAvailableTorque() = 0;
 
     virtual float getEffectiveCurrentLimit() { return m_effective_current_limit; }
 
-    float setTorque(float t)
-    {
-        return m_torque_sp = t;
-    }
-
     constexpr float getPhaseCurrentRevGain() { return m_phase_current_rev_gain; }
+
+    float getElectricalPositionEst() const { return m_position_est; }
+    float getElectricalVelocityEst() const { return m_velocity_est; }
+    float getElectricalPositionSetpoint() const { return m_position_sp; }
+    float getElectricalVelocitySetpoint() const { return m_velocity_sp; }
+
+
+    float setPosition(float pos) { return m_position_sp = pos; }
+    float setVelocity(float vel) { return m_velocity_sp = vel; }
+    float setTorque(float t) { return m_torque_sp = t; }
+    float getTorqueSetpoint() const { return m_torque_sp; }
 
 protected:
     void setControllerLoopFunction(CurrentController::ControllerLoopFuncType func,
@@ -121,9 +136,11 @@ protected:
     }
 
 protected:
-    motor_config *m_cfg;
+    Config *m_cfg;
 
     CurrentController *m_current_controller{nullptr};
+    SpeedController *m_speed_controller{nullptr};
+
     /**
      * @brief 控制器程序
      * 
@@ -133,15 +150,20 @@ protected:
     float m_bus_voltage_meas; /*!< 母线电压, V */
     float m_bus_current_meas; /*!< 母线电流, A */
 
-    float m_torque_sp; /*!< Nm */
-    float m_effective_current_limit; /*!< A */
+    float m_effective_current_limit{10.f}; /*!< A */
     float m_max_allowed_current; /*!< A */
     float m_max_dc_calib;
     float m_phase_current_rev_gain; /*!< ADC 输出电压与 Shunt 的比例 */
     float m_power_watt;
 
-    float m_angle_elec;
-    float m_angular_velocity_elec;
+    float m_position_est{NAN}; /*!< electrical angle, rad */
+    float m_velocity_est{NAN}; /*!< electrical angular velocity, rad/s */
+
+    float m_position_sp{0.f}; /*!< electrical angle, rad */
+    float m_velocity_sp{0.f}; /*!< electrical angular velocity, rad/s */
+    float m_torque_sp{0.f};   /*!< Nm */
+
+    float m_torque_cmd{0.f};
 };
 
 } // namespace pica

@@ -9,12 +9,14 @@
  * 
  */
 
-#include "motor/config.h"
+#include "motor/config.hpp"
 #include <string.h>
 #include <math.h>
 
-void motor_init_param_by_default(struct motor_config *conf)
+void pica::motor::Config::initDefaultValue()
 {
+    Config *conf = this;
+
     memset(conf, 0, sizeof(*conf));
     
     conf->motor_type = 0;

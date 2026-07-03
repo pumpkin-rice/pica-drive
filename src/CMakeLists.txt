@@ -5,10 +5,11 @@ add_subdirectory(trajectory_planning)
 add_library(picadrive STATIC)
 
 set(SRC
-    motor/config.c
+    motor/config.cc
     motor/pwm/svm.c
     motor/bldc/foc.cc
     motor/bldc/bldc.cc
+    motor/bldc/speed_controller_pi.cc
 )
 
 set_target_properties(picadrive

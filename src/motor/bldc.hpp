@@ -15,6 +15,7 @@
 #include "motor.hpp"
 #include "motor/park/park.h"
 #include "bldc/foc.hpp"
+#include "bldc/speed_controller_pi.hpp"
 
 #include <variant>
 
@@ -27,8 +28,7 @@ class FOC;
 
 class BLDC : public Motor
 {
-    friend CurrentController;
-    friend FOC;
+    friend motor::FOC;
 
 public:
     enum Type : uint8_t
@@ -43,11 +43,27 @@ public:
         FieldOrientedControl = 0,
     };
 
-    bool init(motor_config *cfg) final;
+    bool init(Config *cfg) final;
 
-    bool update() override
+    /**
+     * @brief
+     * 
+     * @param[in] period update 运行周期 s
+     * @return true 
+     * @return false 
+     */
+    bool update(float period) final
     {
-        return m_current_controller->update();
+        // if (!m_speed_controller->update(period)) {
+            
+        //     return false;
+        // }
+
+        if (!m_current_controller->update()) {
+            return false;
+        }
+
+        return true;
     }
 
     void sampleCurrentHandler(const float shunt_volt[]) final
@@ -106,7 +122,8 @@ private:
 
     float m_current_calibrator_running_since; // current sensor calibration needs some time to settle
 
-    std::variant<FOC> m_current_controller_variant{*this};
+    std::variant<std::monostate, FOC> m_current_controller_variant;
+    std::variant<std::monostate, motor::SpeedControllerPI> m_speed_controller_variant;
 };
 
 }

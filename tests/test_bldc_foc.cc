@@ -43,7 +43,7 @@ private:
     void initMotorConfig();
 
 protected:
-    motor_config m_cfg;
+    Config m_cfg;
     BLDC m_bldc;
 
     uint64_t m_tick{0};
@@ -107,7 +107,7 @@ void BLDCFixture::sample()
 
 void BLDCFixture::initMotorConfig()
 {
-    motor_init_param_by_default(&m_cfg);
+    m_cfg.initDefaultValue();
 
     m_cfg.motor_type = BLDC::HIGH_CURRENT;
     m_cfg.current_controller_type = BLDC::CurrentControllerType::FieldOrientedControl,
@@ -158,7 +158,7 @@ TEST_F(BLDCFixture, ConstTorque)
 
         m_bldc.setTorque(m_torque);
 
-        m_bldc.update();
+        m_bldc.update(ts_diff);
 
         m_bldc.sampleCurrentCalibratorHandler(NULL, ts_diff);
 

@@ -12,7 +12,7 @@
 #ifndef _PICA_DRIVE_MOTOR_CURRENT_CONTROLLER_HPP_
 #define _PICA_DRIVE_MOTOR_CURRENT_CONTROLLER_HPP_
 
-#include "motor/config.h"
+#include "motor/config.hpp"
 #include "utils/noncopyable.hpp"
 
 namespace pica
@@ -34,7 +34,7 @@ public:
     {
     }
 
-    virtual bool init(const motor_config *cfg)
+    virtual bool init(const Config *cfg)
     {
         m_cfg = cfg;
 
@@ -46,11 +46,13 @@ public:
     virtual void updateGain() {};
     virtual void reset() {};
 
+    virtual CurrentController::ControllerLoopFuncType getControllerLoopFunc() = 0;
+
 protected:
 
     Motor& m_motor;
 
-    const motor_config *m_cfg;
+    const Config *m_cfg;
 
     bool m_current_loop_enabled = false; /*!< 是否使用电流环: true - 使用电流环生成控制电压; false - 使用电压环*/
 };
