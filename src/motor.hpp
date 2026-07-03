@@ -162,8 +162,6 @@ protected:
     float m_position_sp{0.f}; /*!< electrical angle, rad */
     float m_velocity_sp{0.f}; /*!< electrical angular velocity, rad/s */
     float m_torque_sp{0.f};   /*!< Nm */
-
-    float m_torque_cmd{0.f};
 };
 
 } // namespace pica

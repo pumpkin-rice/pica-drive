@@ -55,7 +55,7 @@ public:
     {
     }
 
-    float getTorque() const { return m_torque; }
+    float getTorqueReference() const { return m_torque_ref; }
 
 protected:
    
@@ -64,7 +64,7 @@ protected:
     Motor& m_motor;
     const SpeedControllerConfig *m_cfg{nullptr};
 
-    float m_torque;
+    float m_torque_ref;
 };
 
 } // namespace motor

@@ -14,7 +14,7 @@
 
 #include "motor.hpp"
 #include "motor/park/park.h"
-#include "bldc/foc.hpp"
+#include "bldc/current_controller_foc.hpp"
 #include "bldc/speed_controller_pi.hpp"
 
 #include <variant>
@@ -54,10 +54,10 @@ public:
      */
     bool update(float period) final
     {
-        // if (!m_speed_controller->update(period)) {
+        if (!m_speed_controller->update(period)) {
             
-        //     return false;
-        // }
+            return false;
+        }
 
         if (!m_current_controller->update()) {
             return false;
@@ -111,6 +111,11 @@ public:
 
     template<typename T>
     const T *getCurrentController() { return dynamic_cast<T *>(m_current_controller);}
+
+    float getTorqueReference() const
+    {
+        return m_speed_controller->getTorqueReference();
+    }
 
 private:
     void calcPhaseCurrentGain();

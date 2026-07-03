@@ -43,9 +43,9 @@ bool BLDC::init(Config *cfg)
     calcPhaseCurrentGain();
 
     // // 初始化速度控制器
-    // m_speed_controller = 
-    //         &m_speed_controller_variant.emplace<SpeedControllerPI>(*this);
-    // m_speed_controller->init(&m_cfg->speed_controller_cfg);
+    m_speed_controller = 
+            &m_speed_controller_variant.emplace<SpeedControllerPI>(*this);
+    m_speed_controller->init(&m_cfg->speed_controller_cfg);
 
     return true;
 }

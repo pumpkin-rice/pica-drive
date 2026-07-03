@@ -12,7 +12,6 @@
 #ifndef _PICA_DRIVE_MOTOR_CURRENT_CONTROLLER_HPP_
 #define _PICA_DRIVE_MOTOR_CURRENT_CONTROLLER_HPP_
 
-#include "motor/config.hpp"
 #include "utils/noncopyable.hpp"
 
 namespace pica
@@ -21,6 +20,8 @@ class Motor;
 
 namespace motor
 {
+
+class Config;
 
 class CurrentController : Noncopyable
 {
@@ -41,6 +42,15 @@ public:
         return true;
     }
 
+    /**
+     * @brief 更新控制参数
+     * 
+     * 1. 根据力矩生成电流设定值
+     * 
+     * @param[in] torque 参考力矩, Nm
+     * @return true 
+     * @return false 
+     */
     virtual bool update() { return true; };
 
     virtual void updateGain() {};

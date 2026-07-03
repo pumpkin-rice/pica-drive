@@ -7,8 +7,8 @@ add_library(picadrive STATIC)
 set(SRC
     motor/config.cc
     motor/pwm/svm.c
-    motor/bldc/foc.cc
     motor/bldc/bldc.cc
+    motor/bldc/current_controller_foc.cc
     motor/bldc/speed_controller_pi.cc
 )
 

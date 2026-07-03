@@ -70,7 +70,7 @@ bool SpeedControllerPI::update(float period)
 
     // Check for overspeed fault (done in this module (controller) for cohesion with vel_lim)
     if (m_cfg->overspeed_error_enabled) {
-        if (std::isfinite(vel_est)) {
+        if (!std::isfinite(vel_est)) {
             // TODO: error
             return false;
         }
@@ -160,7 +160,7 @@ bool SpeedControllerPI::update(float period)
         }
     }
 
-    m_torque = torque;
+    m_torque_ref = torque;
 
     return true;
 }

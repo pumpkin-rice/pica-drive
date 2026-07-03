@@ -9,7 +9,7 @@
  * 
  */
 
-#include "foc.hpp"
+#include "current_controller_foc.hpp"
 #include "motor/bldc.hpp"
 #include "motor/pwm/svm.h"
 #include "utils/math.h"
@@ -71,14 +71,14 @@ bool FOC::generateCurrentSetpoint()
 
     BLDC& bldc = *dynamic_cast<BLDC *>(&m_motor);
 
-    float torque_sp = bldc.m_torque_cmd;
+    float torque_sp = bldc.getTorqueReference();
 
     float id = m_idq_sp.d;
     float iq = m_idq_sp.q;
 
     float current_limit = bldc.m_effective_current_limit;
 
-    if (!std::isfinite(bldc.m_torque_sp)) {
+    if (!std::isfinite(torque_sp)) {
         return false;
     }
 
@@ -93,7 +93,7 @@ bool FOC::generateCurrentSetpoint()
     if (BLDC::ACIM == bldc.getMotorType()) {
 
     } else {
-        iq = bldc.m_torque_sp / m_cfg->torque_constant;
+        iq = torque_sp / m_cfg->torque_constant;
     }
 
     // 2-norm clamping where Id takes priority
