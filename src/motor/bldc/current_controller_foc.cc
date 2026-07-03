@@ -9,7 +9,7 @@
  * 
  */
 
-#include "foc.hpp"
+#include "current_controller_foc.hpp"
 #include "motor/bldc.hpp"
 #include "motor/pwm/svm.h"
 #include "utils/math.h"
@@ -19,13 +19,15 @@
 
 using namespace pica::motor;
 
-bool FOC::init(const motor_config *cfg)
+bool FOC::init(const Config *cfg)
 {
     CurrentController::init(cfg);
 
     if (BLDC::GIMBAL != cfg->motor_type) {
         m_current_loop_enabled = true;
     }
+
+    reset();
 
     updateGain();
 
@@ -59,6 +61,8 @@ void FOC::reset()
     m_v_alpha_beta_final.reset();
 
     m_idq_meas_filter_k = kFOCIDQMeasFilterKDefault;
+
+    updateGain();
 }
 
 bool FOC::generateCurrentSetpoint()
@@ -67,12 +71,14 @@ bool FOC::generateCurrentSetpoint()
 
     BLDC& bldc = *dynamic_cast<BLDC *>(&m_motor);
 
+    float torque_sp = bldc.getTorqueReference();
+
     float id = m_idq_sp.d;
     float iq = m_idq_sp.q;
 
     float current_limit = bldc.m_effective_current_limit;
 
-    if (!std::isfinite(bldc.m_torque_sp)) {
+    if (!std::isfinite(torque_sp)) {
         return false;
     }
 
@@ -87,7 +93,7 @@ bool FOC::generateCurrentSetpoint()
     if (BLDC::ACIM == bldc.getMotorType()) {
 
     } else {
-        iq = bldc.m_torque_sp / m_cfg->torque_constant;
+        iq = torque_sp / m_cfg->torque_constant;
     }
 
     // 2-norm clamping where Id takes priority
@@ -104,7 +110,7 @@ bool FOC::generateCurrentSetpoint()
     float vd = 0.f;
     float vq = 0.f;
 
-    float omega = bldc.electricalAngualrVelocity();
+    float omega = bldc.getElectricalVelocityEst();
 
     if (m_cfg->R_wL_FF_enabled) {
         float L  = m_cfg->phase_inductance;
@@ -173,8 +179,8 @@ bool FOC::Run(CurrentController *ctrl,
     
     foc.m_i_alpha_beta_meas.clarke(bldc.m_current_meas);
     if (foc.m_i_alpha_beta_meas.isValid()) {
-        float theta_now = bldc.electricalAngle()
-                        + bldc.electricalAngualrVelocity() * time2last_meas;
+        float theta_now = bldc.getElectricalPositionEst()
+                        + bldc.getElectricalVelocityEst() * time2last_meas;
         
         idq.park(foc.m_i_alpha_beta_meas, theta_now);
 
@@ -211,11 +217,6 @@ bool FOC::Run(CurrentController *ctrl,
         mod_vq = vbus2mod * (foc.m_vdq_sp.q
                     + iq_err * controller_q.kp + controller_q.integral);
         
-        // 计算理论最大值
-        // mod_scale_factor = FRAC_SQRT3_2 * (1.f / sqrtf(mod_vd * mod_vd + mod_vq * mod_vq));
-        // // 对最大值进行限幅
-        // mod_scale_factor *= 0.8f;
-
         // Vector modulation saturation, lock integrator if saturated
         // TODO make maximum modulation configurable
         mod_scale_factor = 0.8f * FRAC_SQRT3_2 * (1.f / sqrtf(mod_vd * mod_vd + mod_vq * mod_vq));
@@ -241,8 +242,8 @@ bool FOC::Run(CurrentController *ctrl,
         mod_vq = vbus2mod * foc.m_vdq_sp.q;
     }
 
-    float theta_next = bldc.electricalAngle()
-                + bldc.electricalAngualrVelocity() * time2next_pwm_output;
+    float theta_next = bldc.getElectricalPositionEst()
+                + bldc.getElectricalVelocityEst() * time2next_pwm_output;
     AlphaBeta mod_valpha_beta{mod_vd, mod_vq, theta_next};
 
     // genernate svpwm

@@ -30,11 +30,11 @@ public:
     void updateGain();
     void reset();
 
-    bool init(const motor_config *cfg) override;
+    bool init(const Config *cfg) override;
 
     bool update() final;
 
-    CurrentController::ControllerLoopFuncType getControllerLoopFunc()
+    CurrentController::ControllerLoopFuncType getControllerLoopFunc() final
     {
         return Run;
     }

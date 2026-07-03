@@ -16,19 +16,21 @@
 
 using namespace pica::motor;
 
-bool BLDC::init(motor_config *cfg)
+bool BLDC::init(Config *cfg)
 {
     if (!Motor::init(cfg)) {
         return false;
     }
 
-    m_effective_current_limit = 10.f;
-
     switch (cfg->current_controller_type) {
     case CurrentControllerType::FieldOrientedControl:
     {
-        auto foc = &std::get<FOC>(m_current_controller_variant);
-        setControllerLoopFunction(foc->getControllerLoopFunc(), foc);
+        m_current_controller =
+                &m_current_controller_variant.emplace<FOC>(*this);
+        setControllerLoopFunction(
+            m_current_controller->getControllerLoopFunc(),
+            m_current_controller
+        );
         break;
     }
 
@@ -39,6 +41,11 @@ bool BLDC::init(motor_config *cfg)
     m_current_controller->init(cfg);
 
     calcPhaseCurrentGain();
+
+    // // 初始化速度控制器
+    m_speed_controller = 
+            &m_speed_controller_variant.emplace<SpeedControllerPI>(*this);
+    m_speed_controller->init(&m_cfg->speed_controller_cfg);
 
     return true;
 }

@@ -10,7 +10,6 @@
  */
 
 #include "motor/bldc.hpp"
-#include "motor/bldc/foc.hpp"
 
 #include <gtest/gtest.h>
 #include <cmath>
@@ -43,7 +42,7 @@ private:
     void initMotorConfig();
 
 protected:
-    motor_config m_cfg;
+    Config m_cfg;
     BLDC m_bldc;
 
     uint64_t m_tick{0};
@@ -100,14 +99,16 @@ void BLDCFixture::sample()
     m_omega_mach = m_freq;
 
     // 输入目标值
-    m_torque   = 0.2f;
-    m_speed    = 0.f;
+    m_torque   = 0.0f;
+    m_speed    = 1200/60*(2*M_PI);
     m_position = 0.f;
 }
 
 void BLDCFixture::initMotorConfig()
 {
-    motor_init_param_by_default(&m_cfg);
+    m_cfg.initDefaultValue();
+
+    auto& speed_cfg = m_cfg.speed_controller_cfg;
 
     m_cfg.motor_type = BLDC::HIGH_CURRENT;
     m_cfg.current_controller_type = BLDC::CurrentControllerType::FieldOrientedControl,
@@ -118,12 +119,20 @@ void BLDCFixture::initMotorConfig()
     m_cfg.shunt_conductance = 1/50e-3; // 50mR
     m_cfg.torque_constant   = 0.0591758042f;
     m_cfg.current_limit     = 7.81;
+    m_cfg.inertia = 0.0000177245;
 
     // 时间常数
     float Tq = m_cfg.phase_inductance / m_cfg.phase_resistance;
     float Td = m_cfg.phase_inductance / m_cfg.phase_resistance;
 
     m_cfg.current_controller_bandwidth = 2 * M_PI / fminf(Tq, Td);
+
+    float speed_bw = 3871/60 * 2*M_PI; // 速度环带宽：4000 rpm
+
+    speed_cfg.control_mode = pica::motor::SpeedController::kVelocity;
+    speed_cfg.pi.pos_gain = 1.f;
+    speed_cfg.pi.vel_gain = (speed_bw * m_cfg.inertia) / m_cfg.torque_constant;
+    speed_cfg.pi.vel_integrator_gain = speed_bw * speed_cfg.pi.vel_gain;
 }
 
 void BLDCFixture::freshOutput()
@@ -156,9 +165,9 @@ TEST_F(BLDCFixture, ConstTorque)
         
         m_bldc.do_checks();
 
-        m_bldc.setTorque(m_torque);
+        m_bldc.setVelocity(m_speed);
 
-        m_bldc.update();
+        m_bldc.update(ts_diff);
 
         m_bldc.sampleCurrentCalibratorHandler(NULL, ts_diff);
 
