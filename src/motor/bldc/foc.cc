@@ -27,6 +27,8 @@ bool FOC::init(const Config *cfg)
         m_current_loop_enabled = true;
     }
 
+    reset();
+
     updateGain();
 
     return true;
@@ -59,6 +61,8 @@ void FOC::reset()
     m_v_alpha_beta_final.reset();
 
     m_idq_meas_filter_k = kFOCIDQMeasFilterKDefault;
+
+    updateGain();
 }
 
 bool FOC::generateCurrentSetpoint()
