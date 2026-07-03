@@ -9,7 +9,7 @@
  * 
  */
 
-#include "motor.hpp"
+#include "motor/bldc.hpp"
 #include "speed_controller_pi.hpp"
 
 #include <cmath>
@@ -28,11 +28,12 @@ static float limitVelocity(const float vel_est, const float vel_gain, const floa
 bool SpeedControllerPI::update(float period)
 {
     const auto& controller_param = m_cfg->pi;
+    auto& bldc = *dynamic_cast<BLDC *>(&m_motor);
 
-    float vel_est = m_motor.getElectricalVelocityEst();
-    float vel_des = m_motor.getElectricalVelocitySetpoint();
-    float torque = m_motor.getTorqueSetpoint();
-    const float Tlim = m_motor.getMaxAvailableTorque();
+    float vel_est = bldc.getElectricalVelocityEst();
+    float vel_des = bldc.getElectricalVelocitySetpoint();
+    float torque = bldc.getTorqueSetpoint();
+    const float Tlim = bldc.getMaxAvailableTorque();
 
     // 位置控制
     float gain_scheduling_multiplier = 1.0f;
@@ -43,8 +44,8 @@ bool SpeedControllerPI::update(float period)
 
     if (kPosition <= m_cfg->control_mode) {
         float pos_err =
-                m_motor.getElectricalPositionSetpoint()
-                    - m_motor.getElectricalPositionEst();
+                bldc.getElectricalPositionSetpoint()
+                    - bldc.getElectricalPositionEst();
         if (!std::isfinite(pos_err)) {
             // TODO: error
 
@@ -156,8 +157,12 @@ bool SpeedControllerPI::update(float period)
         } else {
             m_vel_integrator_torque +=
                 ((vel_integrator_gain * gain_scheduling_multiplier) * period)
-                    * m_cfg->vel_integrator_limit;
+                    * vel_err;
         }
+
+        m_vel_integrator_torque = std::clamp(m_vel_integrator_torque,
+            -m_cfg->vel_integrator_limit,
+             m_cfg->vel_integrator_limit);
     }
 
     m_torque_ref = torque;

@@ -78,7 +78,7 @@ public:
     void sampleEncoderHandler(float angle_mach, float angular_velocity_mach)
     {
         float np = m_cfg->pole_pairs;
-        m_position_est = wrap_pm_pi(angle_mach * np);
+        m_position_est = angle_mach * np;
         m_velocity_est = angular_velocity_mach * np;
     }
 
@@ -121,9 +121,8 @@ public:
     float getElectricalPositionSetpoint() const { return m_position_sp; }
     float getElectricalVelocitySetpoint() const { return m_velocity_sp; }
 
-
-    float setPosition(float pos) { return m_position_sp = pos; }
-    float setVelocity(float vel) { return m_velocity_sp = vel; }
+    float setPosition(float pos) { return m_position_sp = pos * m_cfg->pole_pairs; }
+    float setVelocity(float vel) { return m_velocity_sp = vel * m_cfg->pole_pairs; }
     float setTorque(float t) { return m_torque_sp = t; }
     float getTorqueSetpoint() const { return m_torque_sp; }
 

@@ -49,7 +49,11 @@ public:
         return true;
     }
 
-    virtual bool update(float period) = 0;
+    virtual bool update(float period)
+    {
+        m_torque_ref = 0.2f;
+        return true;
+    };
 
     virtual void reset()
     {
