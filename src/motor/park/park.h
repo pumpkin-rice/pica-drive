@@ -40,11 +40,11 @@ struct ThreePhase
 
     const ThreePhase& set(float va, float vb, float vc);
 
-    constexpr float *get() { return raw; }
+    const float *get() { return raw; }
 
     const ThreePhase& iclarke(const AlphaBeta& ab);
 
-    bool isValid()
+    bool isValid() const
     {
         return std::isfinite(a)
                 && std::isfinite(b)
@@ -57,6 +57,8 @@ struct AlphaBeta
     float alpha{0}, beta{0};
 
     AlphaBeta() = default;
+
+    AlphaBeta(float a, float b) : alpha(a), beta(b) {}
 
     AlphaBeta(const ThreePhase& abc)
     {
@@ -115,6 +117,8 @@ struct DQ
     float d{0.f}, q{0.f};
 
     DQ() = default;
+
+    DQ(float vd, float vq) : d(vd), q(vq) {}
 
     DQ(const AlphaBeta&ab, float theta)
     {

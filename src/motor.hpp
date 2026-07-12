@@ -109,6 +109,7 @@ public:
 
     int8_t getMotorType() const { return m_cfg->motor_type; }
     int8_t getCurrentControllerType() const { return m_cfg->current_controller_type; }
+    CurrentController *getCurrentController() { return m_current_controller; }
 
     virtual float getMaxAvailableTorque() = 0;
 
@@ -121,10 +122,18 @@ public:
     float getElectricalPositionSetpoint() const { return m_position_sp; }
     float getElectricalVelocitySetpoint() const { return m_velocity_sp; }
 
-    float setPosition(float pos) { return m_position_sp = pos * m_cfg->pole_pairs; }
-    float setVelocity(float vel) { return m_velocity_sp = vel * m_cfg->pole_pairs; }
-    float setTorque(float t) { return m_torque_sp = t; }
+    void setPosition(float pos) { m_position_sp = pos * m_cfg->pole_pairs; }
+    float getPositionSetpoint() { return m_position_sp; }
+    void setVelocity(float vel) { m_velocity_sp = vel * m_cfg->pole_pairs; }
+    float getVeloticySetpoint() { return m_velocity_sp; }
+    void setTorque(float t) { m_torque_sp = t; }
     float getTorqueSetpoint() const { return m_torque_sp; }
+
+    bool isArmed() const { return m_armed; }
+    bool disarm();
+    bool arm();
+
+    uint8_t getPolePairs() const { return m_cfg->pole_pairs; }
 
 protected:
     void setControllerLoopFunction(CurrentController::ControllerLoopFuncType func,
@@ -161,6 +170,8 @@ protected:
     float m_position_sp{0.f}; /*!< electrical angle, rad */
     float m_velocity_sp{0.f}; /*!< electrical angular velocity, rad/s */
     float m_torque_sp{0.f};   /*!< Nm */
+
+    bool m_armed{false};
 };
 
 } // namespace pica

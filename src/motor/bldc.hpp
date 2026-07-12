@@ -40,7 +40,8 @@ public:
 
     enum CurrentControllerType : uint8_t
     {
-        FieldOrientedControl = 0,
+        kNone = 0,
+        kFieldOrientedControl = 1,
     };
 
     bool init(Config *cfg) final;
@@ -108,14 +109,20 @@ public:
 
     const float *getDutyCycles() final { return m_duty_cycle.raw; }
     const float *getPhaseCurrentMeasured() { return m_current_meas.raw;}
+    const ThreePhase& getCurrentThreePhaseMeasured() const { return m_current_meas; }
 
     template<typename T>
-    const T *getCurrentController() { return dynamic_cast<T *>(m_current_controller);}
+    const T *getCurrentController() const { return dynamic_cast<T *>(m_current_controller);}
 
     float getTorqueReference() const
     {
         return m_speed_controller->getTorqueReference();
     }
+
+    float getPhaseResistance() const { return m_cfg->phase_resistance; }
+    float getPhaseInductance() const { return m_cfg->phase_inductance; }
+
+    const FOC& getCurrentControllerFOC() const { return std::get<FOC>(m_current_controller_variant); }
 
 private:
     void calcPhaseCurrentGain();
