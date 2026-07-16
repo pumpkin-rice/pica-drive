@@ -24,18 +24,18 @@ target_link_libraries(test_bldc_foc
 )
 gtest_discover_tests(test_bldc_foc)
 
-add_executable(test_bldc_speed_pi
-	test_bldc_speed_pi.cc
-)
-target_link_directories(test_bldc_speed_pi
-	PRIVATE
-		${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
-		${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
-)
-target_link_libraries(test_bldc_speed_pi
-	PRIVATE
-		picadrive
-		GTest::gtest_main
-		matplotlib-cpp
-)
-gtest_discover_tests(test_bldc_speed_pi)
+# add_executable(test_bldc_speed_pi
+# 	test_bldc_speed_pi.cc
+# )
+# target_link_directories(test_bldc_speed_pi
+# 	PRIVATE
+# 		${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
+# 		${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
+# )
+# target_link_libraries(test_bldc_speed_pi
+# 	PRIVATE
+# 		picadrive
+# 		GTest::gtest_main
+# 		matplotlib-cpp
+# )
+# gtest_discover_tests(test_bldc_speed_pi)

@@ -1,20 +1,21 @@
 /**
- * @file svm.c
- * @author Pumpkin Rice (pumpkin_rice@163.com)
+ * @file svpwm.cc
+ * @author Pumpkin Rice
  * @brief 
  * @version 0.1
- * @date 2026-04-15
+ * @date 2026-07-12
  * 
  * @copyright Copyright (c) 2026
  * 
  */
 
-#include "svm.h"
+#include "svpwm.h"
+#include <stdbool.h>
 
 #define FRAC_1_SQRT3    (0.577350269f) /*!< frac{1}{sqrt{3}} */
 #define FRAC_2_SQRT3    (1.154700538f) /*!< frac{2}{sqrt{3}} */
 
-bool svm(float alpha, float beta, float *a, float *b, float *c)
+int svm(float alpha, float beta, float *a, float *b, float *c)
 {
 	float tA, tB, tC;
     int Sextant;
@@ -131,6 +132,6 @@ bool svm(float alpha, float beta, float *a, float *b, float *c)
     *a = tA;
     *b = tB;
     *c = tC;
-    
-    return result_valid;
+
+    return result_valid ? Sextant : -1;
 }
