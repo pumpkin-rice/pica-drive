@@ -99,7 +99,7 @@ public:
     {
         assert(current_controller != nullptr);
 
-        m_ctx = &current_controller;
+        m_ctx = current_controller;
 
         m_reset = T::Reset;
         m_init = T::Init;

@@ -56,23 +56,32 @@ public:
 
     }
 
-    void initConfig();
+    void init();
 
-    void sample();
+    /**
+     * @brief 处理输入数据，如参数变换等
+     *
+     */
+    void input();
 
-    void freshOutput();
+    /**
+     * @brief 输出数据到 matlab
+     * 
+     * @param outputs 
+     */
+    void output();
 
-    void constTorque();
+    void timerUpdateEvent();
+
+    void run();
+
+    void log();
 
 protected:
-    ConfigManager::ConfigFlash m_cfg;
+    ConfigManager::Flash m_cfg;
     BLDC m_bldc;
 
-    uint64_t m_tick{0};
-    double m_second_per_tick{0.f}; /*!< s/tick */
-
-    double m_ts_now{0};
-    double m_ts_last{0};
+    hrt_absnano m_timestamp{0};
 
     float m_freq{0.f};
 
@@ -80,33 +89,65 @@ protected:
     float m_voltage_phase[3], m_vbus;
     float m_duty_cycles[3];
 
-    float m_theta_mach; /*!< 电机机械角度, rad */
-    float m_omega_mach; /*!< 电机机械角速度, rad/s */
+    float m_theta_mach; /*!< 电机机械角度, turn */
+    float m_omega_mach; /*!< 电机机械角速度, turns/s */
 
     float m_torque{0};
     float m_speed{0};
     float m_position{0};
+
+    bool m_counting_up{true}; /*!< 模拟当前 PWM 计数方向: true - 向上, false-向下*/
 };
 
 void BLDCFixture::SetUp()
 {
-    ConfigMgr::GetInstance()->init(&m_cfg);
+    init();
 
-    initConfig();
-    
+    ConfigMgr::GetInstance()->init(&m_cfg);
     m_bldc.init();
 }
 
-void BLDCFixture::sample()
+void BLDCFixture::init()
 {
-        // 更新时间
-    ++m_tick;
-    m_ts_last = m_ts_now;
-    m_ts_now = m_tick * m_second_per_tick;
+    auto& motor = m_cfg.motor;
+
+    motor.motor_type = BLDC::kHighCurrent,
+    motor.current_controller_type = CurrentControllerVariant::kFOC,
+    motor.motor_control_mode = int8_t(pica::Motor::ControlMode::kVelocity);
+    motor.speed_controller_type = SpeedControllerVariant::kPI;
+
+    motor.pole_pairs        = 5;
+    motor.phase_inductance  = 0.5 * 0.64e-3,
+    motor.phase_resistance  = 0.5 * 0.57,
+    motor.torque_constant   = 0.0591758042f;
+    motor.shunt_conductance = 1/50e-3; // 50mR
+    motor.current_limit     = 7.81;
+    motor.inertia = 0.0000177245;
+
+    // 时间常数
+    float Tq = motor.phase_inductance / motor.phase_resistance;
+    float Td = motor.phase_inductance / motor.phase_resistance;
+
+    motor.current_controller_bandwidth = 2 * M_PI / fminf(Tq, Td);
+
+    motor.R_wL_FF_enabled = motor.b_EMF_FF_enabled = true;
+
+    auto& speed = m_cfg.speed.pi;
+    float speed_bw = 3871/60.f * 2*M_PI; // 速度环带宽：4000 rpm
+
+    speed.pos_gain = 60.f;
+    speed.vel_gain = (speed_bw * motor.inertia) / motor.torque_constant;
+    speed.vel_integrator_gain = speed_bw * speed.vel_gain;
+}
+
+void BLDCFixture::input()
+{
+    // 更新时间
+    m_timestamp += (hrt_absnano)((1./16e3) * 10e9);
 
     m_vbus = 24;
 
-    float angle = m_ts_now * m_freq;
+    float angle = (1./16e3) * m_freq;
 
     std::array<float, 3> voltage_shunt = {
         std::cosf(angle),
@@ -136,28 +177,7 @@ void BLDCFixture::sample()
     m_position = 0.f;
 }
 
-void BLDCFixture::initConfig()
-{
-    auto& motor = m_cfg.motor;
-
-    motor.motor_type = BLDC::kHighCurrent;
-    motor.current_controller_type = BLDC::CurrentControllerType::kFOC,
-
-    motor.pole_pairs        = 5;
-    motor.phase_inductance  = 0.5 * 0.64e-3,
-    motor.phase_resistance  = 0.5 * 0.57,
-    motor.shunt_conductance = 1/50e-3; // 50mR
-    motor.torque_constant   = 0.0591758042f;
-    motor.current_limit     = 7.81;
-
-    // 时间常数
-    float Tq = motor.phase_inductance / motor.phase_resistance;
-    float Td = motor.phase_inductance / motor.phase_resistance;
-
-    motor.current_controller_bandwidth = 2 * M_PI / fminf(Tq, Td);
-}
-
-void BLDCFixture::freshOutput()
+void BLDCFixture::output()
 {
     //   [iabc, ialpha_beta, idq, vdq, v_alpha_beta_final, duty_cycle] = mex_picadrive_foc_current_loop(ts, theta_elec, omega_elec, iabc, target);
     // bldc_get_current_controller_foc(&m_bldc);
@@ -177,24 +197,31 @@ TEST_F(BLDCFixture, SpeedPI)
 
     for (int i = 0; i < 1000*10; i++)
     {
-        double ts_diff = m_ts_now - m_ts_last;
+        this->input();
 
-        this->sample();
-
+        // 更新传感器参数
         m_bldc.sampleBusVoltageHandler(m_vbus);
         m_bldc.sampleEncoderHandler(m_theta_mach, m_omega_mach);
-        m_bldc.sampleCurrentHandler(m_voltage_shunt, m_tick);
-        
+
+        // 更新采样电流
+        m_bldc.sampleCurrentHandler(m_voltage_shunt, m_timestamp);
+
         m_bldc.do_checks();
+        
+        // 更新电机控制环参数
+        m_bldc.setTorque(m_torque);
+        m_bldc.setPosition(m_position);
+        m_bldc.setVelocity(m_speed);
 
-        m_bldc.setVelocitySetPoint(m_speed);
+        m_bldc.update(m_timestamp);
 
-        m_bldc.update(ts_diff);
+        // 更新校正电流
+        m_bldc.sampleCurrentCalibratorHandler(NULL,
+            PICA_CONTROLLER_LOOP_UPDATE_TO_CURRENT_MEAS_DELTA_MAX_NANO);
+        
+        // 运行电流环
+        m_bldc.run(m_timestamp+45);
 
-        m_bldc.sampleCurrentCalibratorHandler(NULL, ts_diff);
-
-        m_bldc.run(m_tick);
-
-        this->freshOutput();
+        this->output();
     }
 }
