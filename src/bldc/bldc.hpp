@@ -165,15 +165,23 @@ public:
         m_velocity_est = vel * m_cfg.pole_pairs;
     }
 
-    const AlphaBeta& getVAlphaBetaFinal() const
+    const AlphaBeta& voltageAlphaBetaFinal() const
     {
         return m_v_alpha_beta_final;
     }
 
-    const ABC& curentMeasured() const
+    const ABC& currentMeasured() const
     {
         return m_current_meas;
     }
+
+    template<class T>
+    T *currentController()
+    {
+        return m_current_controller_proxy.getInstance<T>();
+    }
+
+    const float *dutyCycle() final { return m_duty_cycle; }
 
     int8_t getSVMSector() const { return m_svm_sector; }
 
@@ -189,6 +197,12 @@ public:
 
     bool arm(void *current_controller) { return true; }
     bool disarm() final;
+
+#if (PICA_DRIVE_ENABLE_DEBUG == 1)
+
+    float getPhaseCurrentRevGain() const { return m_phase_current_rev_gain; }
+    
+#endif
 
 private:
     void calcPhaseCurrentGain();
@@ -207,7 +221,6 @@ private:
 
     bool measurePhaseResistance(float test_current, float max_voltage);
 
-    const float *dutyCycle() final { return m_duty_cycle; }
 
 private:
     Config m_cfg;

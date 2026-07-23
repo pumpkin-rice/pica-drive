@@ -16,7 +16,7 @@
 using namespace pica::motor::bldc;
 
 bool PhaseInductanceMeasurer::update(hrt_absnano now) {
-  AlphaBeta Ialpha_beta = clarke(m_motor.curentMeasured());
+  AlphaBeta Ialpha_beta = clarke(m_motor.currentMeasured());
 
   if (!isfinite(Ialpha_beta)) {
     // TODO:

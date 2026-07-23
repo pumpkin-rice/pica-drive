@@ -24,14 +24,12 @@ set_target_properties(picadrive
 target_include_directories(picadrive
     PUBLIC
         .
-        ${CMAKE_SOURCE_DIR}/third/matrix
-        ${CMAKE_SOURCE_DIR}/ports
+        ${PROJECT_SOURCE_DIR}/third/matrix
+        ${PROJECT_SOURCE_DIR}/ports
 
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
-
-message(STATUS "")
 
 target_sources(picadrive
     PRIVATE

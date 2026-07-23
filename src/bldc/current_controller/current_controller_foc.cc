@@ -228,6 +228,8 @@ bool FOC::run(hrt_absnano ts_output, AlphaBeta* v_alpha_beta_final) {
         mod_vdq = vbus2mod * m_vdq_sp;
     }
 
+    m_vdq_final = mod_vdq * mod2vbus;
+
     float theta_next = m_motor.m_position_est +
                         m_motor.m_velocity_est *
                             ((float)(ts_output - m_ts_update) * 1e-9f);

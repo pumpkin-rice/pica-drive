@@ -45,4 +45,10 @@
  */
 #define PICA_CONTROLLER_LOOP_UPDATE_TO_CURRENT_MEAS_DELTA_MAX_NANO (120)
 
+/**
+ * @brief 启用调试模式
+ * 
+ */
+#define PICA_DRIVE_ENABLE_DEBUG     1
+
 #endif /* !_PICA_DRIVE_CONF_H_ */

@@ -55,6 +55,11 @@ public:
         return m_vdq_sp;
     }
 
+    const DQ& getVoltageDQFinal() const
+    {
+        return m_vdq_final;
+    }
+
     void reset();
 
     bool init(void *cfg);
@@ -62,6 +67,15 @@ public:
     bool update(hrt_absnano now);
 
     bool run(hrt_absnano ts_output, AlphaBeta *v_alpha_beta_final);
+
+#if (PICA_DRIVE_ENABLE_DEBUG == 1)
+
+    const auto& getControllerParam() const
+    {
+        return m_pi;
+    }
+
+#endif
 
 private:
     Config m_cfg;
@@ -71,6 +85,7 @@ private:
 
     AlphaBeta m_i_alpha_beta_meas;
     DQ m_idq_meas;
+    DQ m_vdq_final;
 
     float m_idq_meas_filter_k; /*!< dq 电流滤波器参数 */
 

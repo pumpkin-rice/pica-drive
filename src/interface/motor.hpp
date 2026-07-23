@@ -140,13 +140,13 @@ public:
 
     const hrt_absnano& timestampCurrentMeas() const { return m_ts_current_meas; }
 
-    void setTorqueSetPoint(float t) { m_torque_sp = t; }
-    float torqueSetpoint() const { return m_torque_sp; }
+    void setTorque(float t) { m_torque_sp = t; }
+    float torque() const { return m_torque_sp; }
 
-    void  setVelocitySetPoint(float vel) { m_velocity_sp = vel * m_pole_pairs; }
-    float velocitySetpoint() const { return m_velocity_sp; }
-    void  setPositionSetpoint(float pos) { m_position_sp = pos * m_pole_pairs; }
-    float positionSetpoint() const { return m_position_sp; }
+    void  setVelocity(float vel) { m_velocity_sp = vel * m_pole_pairs; }
+    float velocity() const { return m_velocity_sp; }
+    void  setPosition(float pos) { m_position_sp = pos * m_pole_pairs; }
+    float position() const { return m_position_sp; }
 
     /**
      * @brief 获取速度环输出：参考力矩，Nm

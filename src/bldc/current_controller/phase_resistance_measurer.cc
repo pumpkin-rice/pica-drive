@@ -22,7 +22,7 @@ namespace motor {
 namespace bldc {
 
 bool PhaseResistanceMeasurer::update(hrt_absnano now) {
-  auto& curr = m_motor.curentMeasured();
+  auto& curr = m_motor.currentMeasured();
   auto vbus = m_motor.busVoltage();
   auto Ialpha_beta = clarke(curr);
 

@@ -147,6 +147,9 @@ public:
                     );
     }
 
+    template<class T>
+    T *getInstance() const { return reinterpret_cast<T*>(m_ctx); }
+
 private:
     void *m_ctx{nullptr};
 

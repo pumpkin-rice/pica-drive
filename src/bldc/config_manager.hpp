@@ -29,13 +29,13 @@ class ConfigManager : Noncopyable
 {
 public:
     ConfigManager() = default;
-    ConfigManager(void *cfg) : m_cfg(reinterpret_cast<ConfigFlash*>(cfg)) {}
+    ConfigManager(void *cfg) : m_cfg(reinterpret_cast<Flash*>(cfg)) {}
     
     /**
      * @brief Flash 中的配置文件排列
      * 
      */
-    struct ConfigFlash {
+    struct Flash {
         BLDC::Config motor;
 
         struct {
@@ -54,12 +54,12 @@ public:
     bool write();
     bool flush();
 
-    void init(ConfigFlash *addr) { m_cfg = addr; }
+    void init(Flash *addr) { m_cfg = addr; }
 
 private:
 
 private:
-    ConfigFlash *m_cfg{nullptr};
+    Flash *m_cfg{nullptr};
 };
 
 using ConfigMgr = Singleton<ConfigManager>;
