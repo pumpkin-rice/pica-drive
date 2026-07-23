@@ -244,6 +244,9 @@ bool FOC::Run(CurrentController *ctrl, hrt_absnano ts_next_pwmoutput)
         mod_vq = vbus2mod * foc.m_vdq_sp.q;
     }
 
+    foc.m_vdq_final.d = mod_vd * mod2vbus;
+    foc.m_vdq_final.q = mod_vq * mod2vbus;
+
     float theta_next = bldc.getElectricalPositionEst()
                 + bldc.getElectricalVelocityEst() * ((float)(ts_next_pwmoutput-foc.m_update_ts) * 1e-9f);
     AlphaBeta mod_valpha_beta{mod_vd, mod_vq, theta_next};

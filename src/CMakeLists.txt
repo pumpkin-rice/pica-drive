@@ -27,7 +27,7 @@ target_include_directories(picadrive
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-message(STATUS "")
+message(STATUS "Project source dir: ${PROJECT_SOURCE_DIR}")
 
 target_sources(picadrive
     PRIVATE
