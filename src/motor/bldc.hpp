@@ -52,21 +52,23 @@ public:
      * @return true 
      * @return false 
      */
-    bool update(float period) final
+    bool update(hrt_absnano now) final
     {
-        if (!m_speed_controller->update(period)) {
+        float torque;
+
+        if (!m_speed_controller->update(now, &torque)) {
             
             return false;
         }
 
-        if (!m_current_controller->update()) {
+        if (!m_current_controller->update(torque, now)) {
             return false;
         }
 
         return true;
     }
 
-    void sampleCurrentHandler(const float shunt_volt[]) final
+    void sampleCurrentHandler(const float shunt_volt[], hrt_absnano meas_ts) final
     {
         float shunt_gain = m_cfg->shunt_conductance * m_phase_current_rev_gain;
 
@@ -75,6 +77,8 @@ public:
             shunt_gain * shunt_volt[1],
             shunt_gain * shunt_volt[2]
         );
+
+        m_current_sample_ts = meas_ts;
     }
 
     void sampleCurrentCalibratorHandler(const float *calibator, float measure_period) final
@@ -111,11 +115,6 @@ public:
 
     template<typename T>
     const T *getCurrentController() { return dynamic_cast<T *>(m_current_controller);}
-
-    float getTorqueReference() const
-    {
-        return m_speed_controller->getTorqueReference();
-    }
 
 private:
     void calcPhaseCurrentGain();
