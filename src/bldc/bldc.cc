@@ -23,6 +23,8 @@ bool BLDC::init()
     auto cfg_mgr = ConfigMgr::GetInstance();
 
     m_cfg = *reinterpret_cast<Config*>(cfg_mgr->motor());
+    
+    m_pole_pairs = m_cfg.pole_pairs;
 
     m_current_controller_proxy.init(cfg_mgr->current());
 
@@ -36,14 +38,16 @@ bool BLDC::init()
     return true;
 }
 
-bool BLDC::update(hrt_absnano ts)
+bool BLDC::update(hrt_absnano now)
 {
-    if (!m_speed_controller.update(&m_torque_ref, ts)) {
+    float torque;
+
+    if (!m_speed_controller.update(&torque, now)) {
         // 
         return false;
     }
 
-    if (!m_current_controller_proxy.update(ts)) {
+    if (!m_current_controller_proxy.update(torque, now)) {
         return false;
     }
 

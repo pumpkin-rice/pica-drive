@@ -112,13 +112,13 @@ public:
      * 
      * @note 对于电角度与编码器采样角度不一致时，需要重写此接口
      * 
-     * @param[in] pos 
-     * @param[in] vel 
+     * @param[in] pos rad
+     * @param[in] vel rad/s
      */
     virtual void sampleEncoderHandler(float pos, float vel)
     {
-        m_position_est = pos;
-        m_velocity_est = vel;
+        m_position_est = pos * m_pole_pairs;
+        m_velocity_est = vel * m_pole_pairs;
     }
 
     float busVoltage() const { return m_bus_voltage_meas; }
@@ -143,8 +143,18 @@ public:
     void setTorque(float t) { m_torque_sp = t; }
     float torque() const { return m_torque_sp; }
 
+    /**
+     * @brief Set the machincial Velocity object
+     * 
+     * @param[in] vel rad/s
+     */
     void  setVelocity(float vel) { m_velocity_sp = vel * m_pole_pairs; }
     float velocity() const { return m_velocity_sp; }
+    /**
+     * @brief Set the Position object
+     * 
+     * @param[in] pos rad
+     */
     void  setPosition(float pos) { m_position_sp = pos * m_pole_pairs; }
     float position() const { return m_position_sp; }
 
@@ -160,14 +170,14 @@ protected:
 
     float m_pole_pairs{1.f};
 
-    float m_position_sp{0.f}; /*!< electrical angle, turns */
-    float m_velocity_sp{0.f}; /*!< electrical angular velocity, turn/s */
+    float m_position_sp{0.f}; /*!< electrical angle, rad */
+    float m_velocity_sp{0.f}; /*!< electrical angular velocity, rad/s */
     float m_torque_sp{0.f};   /*!< Nm */
 
     float m_torque_ref{NAN}; /*!< 速度环输出 */
 
-    float m_position_est{NAN}; /*!< electrical angle, turns */
-    float m_velocity_est{NAN}; /*!< electrical angular velocity, turn/s */
+    float m_position_est{NAN}; /*!< electrical angle, rad */
+    float m_velocity_est{NAN}; /*!< electrical angular velocity, rad/s */
 
     float m_bus_voltage_meas; /*!< V */
     float m_bus_current_meas; /*!< A */

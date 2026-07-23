@@ -45,13 +45,13 @@ private:
         return reinterpret_cast<Derived*>(ctx)->init(cfg);
     }
 
-    static bool Run(void *ctx, hrt_absnano ts_output,
+    static bool Run(void *ctx, float torque_sp, hrt_absnano ts_output,
             AlphaBeta *v_alpha_beta_final)
     {
         return reinterpret_cast<Derived*>(ctx)->run(ts_output, v_alpha_beta_final);
     }
 
-    static bool Update(void *ctx, hrt_absnano now)
+    static bool Update(void *ctx, float torque_sp, hrt_absnano now)
     {
         return reinterpret_cast<Derived*>(ctx)->update(now);
     }
@@ -77,7 +77,7 @@ class CurrentControllerProxy : Noncopyable
 public:
     typedef bool (*InitFuncType)(void *ctx, void *cfg);
     typedef void (*ResetFuncType)(void *ctx);
-    typedef bool (*UpdateFuncType)(void *ctx, hrt_absnano now);
+    typedef bool (*UpdateFuncType)(void *ctx, float torque_sp, hrt_absnano now);
     typedef bool (*RunFuncType)(void *ctx, hrt_absnano ts_output, AlphaBeta *v_alpha_beta_final);
 
     CurrentControllerProxy() = default;
@@ -129,7 +129,10 @@ public:
      * @return true 
      * @return false 
      */
-    bool update(hrt_absnano now) { return m_update(m_ctx, now); }
+    bool update(float torque_sp, hrt_absnano now)
+    { 
+        return m_update(m_ctx, torque_sp, now);
+    }
 
     /**
      * @brief 运行电流环

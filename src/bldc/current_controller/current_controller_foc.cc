@@ -62,12 +62,10 @@ void FOC::reset() {
     updateGain();
 }
 
-bool FOC::update(hrt_absnano now) {
+bool FOC::update(float torque_sp, hrt_absnano now) {
     bool ret;
 
     const auto& cfg_motor = m_motor.m_cfg;
-
-    float torque_sp = m_motor.m_torque_ref;
 
     float id = m_idq_sp(0);
     float iq = m_idq_sp(1);
@@ -87,6 +85,7 @@ bool FOC::update(hrt_absnano now) {
 
     // Convert requested torque to current
     if (BLDC::kACIM == m_motor.type()) {
+
     } else {
         iq = torque_sp / cfg_motor.torque_constant;
     }
@@ -112,7 +111,7 @@ bool FOC::update(hrt_absnano now) {
         float Rs = cfg_motor.phase_resistance;
 
         if (!std::isfinite(omega)) {
-        return -1;
+            return -1;
         }
 
         vd -= omega * L * iq;
@@ -124,8 +123,8 @@ bool FOC::update(hrt_absnano now) {
 
     if (cfg_motor.b_EMF_FF_enabled) {
         if (!std::isfinite(omega)) {
-        // TODO: error unknow omega
-        goto exit;
+            // TODO: error unknow omega
+            goto exit;
         }
 
         /**
@@ -180,7 +179,7 @@ bool FOC::run(hrt_absnano ts_output, AlphaBeta* v_alpha_beta_final) {
         idq = park(m_i_alpha_beta_meas, theta_now);
 
         if (isfinite(idq)) {
-        m_idq_meas += m_idq_meas_filter_k * (idq - m_idq_meas);
+            m_idq_meas += m_idq_meas_filter_k * (idq - m_idq_meas);
         }
 
     } else {
@@ -191,7 +190,6 @@ bool FOC::run(hrt_absnano ts_output, AlphaBeta* v_alpha_beta_final) {
     vbus2mod = 1.f / mod2vbus;
 
     if (m_current_loop_enabled) {
-        float id_err, iq_err;
         float mod_scale_factor;
 
         if (!isfinite(idq)) {
@@ -214,7 +212,7 @@ bool FOC::run(hrt_absnano ts_output, AlphaBeta* v_alpha_beta_final) {
 
             m_pi.integral *= 0.99f;
 
-            } else {
+        } else {
             m_pi.integral = {
                 idq_err(0) * (m_pi.ki(0) * PICA_DRIVE_CURRENT_MEASURE_PERIOD),
                 idq_err(1) * (m_pi.ki(1) * PICA_DRIVE_CURRENT_MEASURE_PERIOD),

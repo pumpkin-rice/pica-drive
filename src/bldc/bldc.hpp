@@ -153,18 +153,6 @@ public:
         }
     }
 
-    /**
-     * @brief 更新编码器信息
-     * 
-     * @param[in] pos turn
-     * @param[in] vel turns/s
-     */
-    void sampleEncoderHandler(float pos, float vel) final
-    {
-        m_position_est = pos * m_cfg.pole_pairs;
-        m_velocity_est = vel * m_cfg.pole_pairs;
-    }
-
     const AlphaBeta& voltageAlphaBetaFinal() const
     {
         return m_v_alpha_beta_final;

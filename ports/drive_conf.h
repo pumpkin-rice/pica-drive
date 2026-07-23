@@ -43,7 +43,7 @@
  * @brief 控制回路运行时刻(update)至电流采样的最大时间间隔，ns
  * 
  */
-#define PICA_CONTROLLER_LOOP_UPDATE_TO_CURRENT_MEAS_DELTA_MAX_NANO (120)
+#define PICA_CONTROLLER_LOOP_UPDATE_TO_CURRENT_MEAS_DELTA_MAX_NANO (10000)
 
 /**
  * @brief 启用调试模式

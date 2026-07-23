@@ -98,8 +98,8 @@ inline ABC iclarke(const AlphaBeta& ab)
 {
     return {
         ab(0),
-        -0.5f * ab(0) + (0.5f * SQRT3) * ab(1),
-        -0.5f * ab(0) - (0.5f * SQRT3) * ab(1),
+        (-0.5f) * ab(0) + (0.5f * SQRT3) * ab(1),
+        (-0.5f) * ab(0) - (0.5f * SQRT3) * ab(1),
     };
 }
 

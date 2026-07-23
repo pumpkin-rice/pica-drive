@@ -64,7 +64,15 @@ public:
 
     bool init(void *cfg);
 
-    bool update(hrt_absnano now);
+    /**
+     * @brief 更新控制器参数
+     * 
+     * @param[in] torque_sp 力矩设定值，Nm
+     * @param[in] now 当前时刻，ns
+     * @return true 
+     * @return false 
+     */
+    bool update(float torque_sp, hrt_absnano now);
 
     bool run(hrt_absnano ts_output, AlphaBeta *v_alpha_beta_final);
 
