@@ -22,6 +22,7 @@ set_target_properties(picadrive
 target_include_directories(picadrive
     PUBLIC
         .
+        ${PROJECT_SOURCE_DIR}/ports
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )

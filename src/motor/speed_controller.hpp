@@ -49,17 +49,23 @@ public:
         return true;
     }
 
-    virtual bool update(float period)
+    /**
+     * @brief 
+     * 
+     * @param[in] now 当前时刻，ns
+     * @param[in] torque 输出力矩
+     * @return true 
+     * @return false 
+     */
+    virtual bool update(hrt_absnano now, float *torque)
     {
-        m_torque_ref = 0.2f;
+        *torque = 0.2f;
         return true;
     };
 
     virtual void reset()
     {
     }
-
-    float getTorqueReference() const { return m_torque_ref; }
 
 protected:
    
@@ -68,7 +74,7 @@ protected:
     Motor& m_motor;
     const SpeedControllerConfig *m_cfg{nullptr};
 
-    float m_torque_ref;
+    hrt_absnano m_ts_prev{0};
 };
 
 } // namespace motor

@@ -9,6 +9,7 @@
  * 
  */
 
+#include "drive_conf.h"
 #include "current_controller_foc.hpp"
 #include "motor/bldc.hpp"
 #include "motor/pwm/svm.h"
@@ -65,13 +66,11 @@ void FOC::reset()
     updateGain();
 }
 
-bool FOC::generateCurrentSetpoint()
+bool FOC::update(float torque_sp, hrt_absnano now)
 {
     bool ret;
 
     BLDC& bldc = *dynamic_cast<BLDC *>(&m_motor);
-
-    float torque_sp = bldc.getTorqueReference();
 
     float id = m_idq_sp.d;
     float iq = m_idq_sp.q;
@@ -152,20 +151,13 @@ bool FOC::generateCurrentSetpoint()
 
     ret = true;
 
+    m_update_ts = now;
+
 exit:
     return ret;
 }
 
-bool FOC::update()
-{
-    generateCurrentSetpoint();
-
-    return true;
-}
-
-bool FOC::Run(CurrentController *ctrl,
-                    float time2last_meas, float time2next_pwm_output,
-                    float period)
+bool FOC::Run(CurrentController *ctrl, hrt_absnano ts_next_pwmoutput)
 {
     bool ret = false;
 
@@ -176,11 +168,21 @@ bool FOC::Run(CurrentController *ctrl,
 
     DQ idq;
     float mod_vd, mod_vq;
+
+    // 按照ns计算，uint32 最多在 4s
+    uint32_t dt = hrt_diff_nano(&foc.m_update_ts, &bldc.currentSampleTimestamp());
+    if (dt > PICA_CONTROLLER_LOOP_UPDATE_TO_CURRENT_MEAS_DELTA_MAX_NANO)
+    {
+        // 控制环更新延迟程序是否过大
+        // TODO: error
+
+        return false;
+    }
     
     foc.m_i_alpha_beta_meas.clarke(bldc.m_current_meas);
     if (foc.m_i_alpha_beta_meas.isValid()) {
         float theta_now = bldc.getElectricalPositionEst()
-                        + bldc.getElectricalVelocityEst() * time2last_meas;
+                        + bldc.getElectricalVelocityEst() * (float)(dt * 1e-9f);
         
         idq.park(foc.m_i_alpha_beta_meas, theta_now);
 
@@ -229,8 +231,8 @@ bool FOC::Run(CurrentController *ctrl,
             controller_q.integral *= 0.99f;
 
         } else {
-            controller_d.integral += id_err * (controller_d.ki * period);
-            controller_q.integral += iq_err * (controller_q.ki * period);
+            controller_d.integral += id_err * (controller_d.ki * PICA_DRIVE_CURRENT_MEASURE_PERIOD);
+            controller_q.integral += iq_err * (controller_q.ki * PICA_DRIVE_CURRENT_MEASURE_PERIOD);
         }
 
         controller_d.err_prev = id_err;
@@ -243,7 +245,7 @@ bool FOC::Run(CurrentController *ctrl,
     }
 
     float theta_next = bldc.getElectricalPositionEst()
-                + bldc.getElectricalVelocityEst() * time2next_pwm_output;
+                + bldc.getElectricalVelocityEst() * ((float)(ts_next_pwmoutput-foc.m_update_ts) * 1e-9f);
     AlphaBeta mod_valpha_beta{mod_vd, mod_vq, theta_next};
 
     // genernate svpwm
