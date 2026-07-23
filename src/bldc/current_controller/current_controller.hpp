@@ -45,15 +45,15 @@ private:
         return reinterpret_cast<Derived*>(ctx)->init(cfg);
     }
 
-    static bool Run(void *ctx, float torque_sp, hrt_absnano ts_output,
+    static bool Update(void *ctx, float torque_sp, hrt_absnano now)
+    {
+        return reinterpret_cast<Derived*>(ctx)->update(torque_sp, now);
+    }
+
+    static bool Run(void *ctx, hrt_absnano ts_output,
             AlphaBeta *v_alpha_beta_final)
     {
         return reinterpret_cast<Derived*>(ctx)->run(ts_output, v_alpha_beta_final);
-    }
-
-    static bool Update(void *ctx, float torque_sp, hrt_absnano now)
-    {
-        return reinterpret_cast<Derived*>(ctx)->update(now);
     }
 
     hrt_absnano timestampUpdate() const { return m_ts_update; }

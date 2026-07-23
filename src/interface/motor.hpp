@@ -115,11 +115,16 @@ public:
      * @param[in] pos rad
      * @param[in] vel rad/s
      */
-    virtual void sampleEncoderHandler(float pos, float vel)
+    void sampleEncoderHandler(float pos, float vel)
     {
         m_position_est = pos * m_pole_pairs;
         m_velocity_est = vel * m_pole_pairs;
     }
+
+    float positionEst() const { return m_position_est; }
+    float velocityEst() const { return m_velocity_est; }
+
+    int polePairs() const { return m_pole_pairs; }
 
     float busVoltage() const { return m_bus_voltage_meas; }
 
@@ -136,7 +141,7 @@ public:
     virtual bool disarm() = 0;
     bool isArmed() const { return m_armed; };
 
-    ControlMode getControlMode() const { return m_control_mode; }
+    virtual ControlMode getControlMode() const = 0;
 
     const hrt_absnano& timestampCurrentMeas() const { return m_ts_current_meas; }
 
@@ -183,11 +188,9 @@ protected:
     float m_bus_current_meas; /*!< A */
     float m_power_watt; /*!< 当前功耗，W */
 
-    float m_effective_current_limit; /*!< 电流限制数值，A */
+    float m_effective_current_limit{10.f}; /*!< 电流限制数值，A */
 
     hrt_absnano m_ts_current_meas{0}; /*!< 电流采样时刻, tick */
-
-    ControlMode m_control_mode{-1};
 };
 
     

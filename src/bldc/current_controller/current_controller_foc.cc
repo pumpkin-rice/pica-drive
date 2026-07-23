@@ -18,6 +18,10 @@
 #include <algorithm>
 #include <cmath>
 
+#if (PICA_DRIVE_ENABLE_LOGGER == 1)
+    #include "spdlog/spdlog.h"
+#endif
+
 namespace pica::motor::bldc {
 
 bool FOC::init(void* cfg) {
@@ -25,11 +29,17 @@ bool FOC::init(void* cfg) {
 
     if (BLDC::Type::kGimbal != m_motor.type()) {
         m_current_loop_enabled = true;
+
+    } else {
+        #if (PICA_DRIVE_ENABLE_LOGGER == 1)
+            spdlog::warn("FOC: motor type is GIMBAL, ready to use Voltage controller.");
+        #endif
     }
 
     reset();
 
     updateGain();
+
 
     return true;
 }
@@ -48,6 +58,10 @@ void FOC::updateGain() {
     m_pi.ki.setAll(ki);
 
     m_pi.integral.setAll(0.f);
+
+    #if (PICA_DRIVE_ENABLE_LOGGER == 1)
+        spdlog::info("FOC: init finished, kp {}, ki {}.", kp, ki);
+    #endif
 }
 
 void FOC::reset() {
@@ -73,6 +87,10 @@ bool FOC::update(float torque_sp, hrt_absnano now) {
     float current_limit = m_motor.m_effective_current_limit;
 
     if (!std::isfinite(torque_sp)) {
+        #if (PICA_DRIVE_ENABLE_LOGGER == 1)
+                spdlog::error("FOC: torque invalid.");
+        #endif
+
         return false;
     }
 
@@ -111,6 +129,10 @@ bool FOC::update(float torque_sp, hrt_absnano now) {
         float Rs = cfg_motor.phase_resistance;
 
         if (!std::isfinite(omega)) {
+            #if (PICA_DRIVE_ENABLE_LOGGER == 1)
+                spdlog::error("FOC: omega {} invalid.", omega);
+            #endif
+
             return -1;
         }
 
@@ -137,7 +159,7 @@ bool FOC::update(float torque_sp, hrt_absnano now) {
             (cfg_motor.torque_constant / cfg_motor.pole_pairs);
     }
 
-    if (BLDC::kGimbal == cfg_motor.motor_type) {
+    if (BLDC::kGimbal == m_motor.type()) {
         // reinterpret current as voltage
         m_vdq_sp = {vd + iq, vq + iq};
 
@@ -162,11 +184,15 @@ bool FOC::run(hrt_absnano ts_output, AlphaBeta* v_alpha_beta_final) {
     DQ mod_vdq;
 
     // 按照ns计算，uint32 最多在 4s
-    uint32_t dt = hrt_diff_nano(&m_ts_update, &m_motor.timestampCurrentMeas());
+    uint32_t dt = (uint32_t)(m_ts_update - m_motor.m_ts_current_meas);
     if (dt > PICA_CONTROLLER_LOOP_UPDATE_TO_CURRENT_MEAS_DELTA_MAX_NANO)
     {
         // 控制环更新延迟程序是否过大
         // TODO: error
+
+        #if (PICA_DRIVE_ENABLE_LOGGER == 1)
+            spdlog::error("FOC: controller update too late.");
+        #endif
 
         return false;
     }
@@ -193,7 +219,12 @@ bool FOC::run(hrt_absnano ts_output, AlphaBeta* v_alpha_beta_final) {
         float mod_scale_factor;
 
         if (!isfinite(idq)) {
-        // TODO: error
+            // TODO: error
+            #if (PICA_DRIVE_ENABLE_LOGGER == 1)
+                spdlog::error("FOC: Idq invalid.");
+            #endif
+
+            return false;
         }
 
         DQ idq_err{m_idq_sp - idq};
@@ -205,7 +236,7 @@ bool FOC::run(hrt_absnano ts_output, AlphaBeta* v_alpha_beta_final) {
 
         // Vector modulation saturation, lock integrator if saturated
         // TODO make maximum modulation configurable
-        mod_scale_factor = 0.8f * FRAC_SQRT3_2 * (1.f / mod_vdq.norm());
+        mod_scale_factor = 0.8f * FRAC_SQRT3_2 * (1.f / (mod_vdq(0) * mod_vdq(0) + mod_vdq(1) * mod_vdq(1)));
 
         if (mod_scale_factor < 1.f) {
             mod_vdq *= mod_scale_factor;
@@ -213,10 +244,11 @@ bool FOC::run(hrt_absnano ts_output, AlphaBeta* v_alpha_beta_final) {
             m_pi.integral *= 0.99f;
 
         } else {
-            m_pi.integral = {
-                idq_err(0) * (m_pi.ki(0) * PICA_DRIVE_CURRENT_MEASURE_PERIOD),
-                idq_err(1) * (m_pi.ki(1) * PICA_DRIVE_CURRENT_MEASURE_PERIOD),
-            };
+            auto& i = m_pi.integral;
+            auto& ki = m_pi.ki;
+
+            i(0) += idq_err(0) * ki(0) * PICA_DRIVE_CURRENT_MEASURE_PERIOD;
+            i(1) += idq_err(1) * ki(1) * PICA_DRIVE_CURRENT_MEASURE_PERIOD;
         }
 
         m_pi.err_prev = idq_err;

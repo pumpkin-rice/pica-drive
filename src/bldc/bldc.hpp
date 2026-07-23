@@ -102,7 +102,7 @@ public:
         float spinout_mechanical_power_threshold = -10.0f; // [W] mechanical power threshold for spinout detection
 
         int16_t motor_type{-1}; /*!< 电机类型, 详细定义见电机子类 @ref{enum Type} */
-        uint8_t pole_pairs{5}; /*!< pole piar number, one for DC */
+        uint8_t pole_pairs{1}; /*!< pole piar number, one for DC */
         int8_t current_controller_type{-1}; /*!< 电流控制器类型, 详细定义见电机子类 @ref{enum CurrentControllerType} */
         int8_t speed_controller_type{-1};
         int8_t motor_control_mode{-1}; /*!< 电机控制模式：力矩、速度、位置 */
@@ -129,6 +129,8 @@ public:
 
         m_ts_current_meas = ts;
     }
+
+    const ABC& currentMeasured() const { return m_current_meas; }
 
     /**
      * @brief 校正电流采样更新
@@ -158,10 +160,6 @@ public:
         return m_v_alpha_beta_final;
     }
 
-    const ABC& currentMeasured() const
-    {
-        return m_current_meas;
-    }
 
     template<class T>
     T *currentController()
@@ -181,6 +179,11 @@ public:
         return m_cfg.motor_type;
     }
 
+    ControlMode getControlMode() const final
+    {
+        return (ControlMode)m_cfg.motor_control_mode;
+    }
+
     bool do_checks() { return true; }
 
     bool arm(void *current_controller) { return true; }
@@ -189,6 +192,12 @@ public:
 #if (PICA_DRIVE_ENABLE_DEBUG == 1)
 
     float getPhaseCurrentRevGain() const { return m_phase_current_rev_gain; }
+
+    template<class T>
+    T *getCurrentController()
+    {
+        return m_current_controller_proxy.getInstance<T>();
+    }
     
 #endif
 

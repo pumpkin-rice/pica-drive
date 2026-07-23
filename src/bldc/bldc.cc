@@ -16,6 +16,13 @@
 #include <cmath>
 #include <algorithm>
 
+#if (PICA_DRIVE_ENABLE_LOGGER == 1)
+
+// #include "loguru/loguru.hpp"
+#include "spdlog/spdlog.h"
+
+#endif
+
 using namespace pica::motor::bldc;
 
 bool BLDC::init()
@@ -23,24 +30,55 @@ bool BLDC::init()
     auto cfg_mgr = ConfigMgr::GetInstance();
 
     m_cfg = *reinterpret_cast<Config*>(cfg_mgr->motor());
+    if (m_cfg.motor_type < 0) {
+        #if (PICA_DRIVE_ENABLE_LOGGER == 1)
+                spdlog::info("BLDC: motor type {} is invalid.", m_cfg.motor_type);
+        #endif
+    }
+
+    spdlog::info("BLDC: ConfigMgr addr at {}, motor at {}, type {}, current controller {}, speed controller {}, control mode {}",
+            (uint64_t)ConfigMgr().GetInstance(),
+            (uint64_t)(ConfigMgr().GetInstance()->motor()),
+            this->type(),
+            m_cfg.current_controller_type,
+            m_cfg.speed_controller_type,
+            m_cfg.motor_control_mode
+    );
+
+    spdlog::info("BLDC: addr of foc({}), addr of ctx in proxy({})", 
+        (uint64_t)&m_current_controller, 
+        (uint64_t)m_current_controller_proxy.getInstance<FOC>()
+    );
     
     m_pole_pairs = m_cfg.pole_pairs;
 
-    m_current_controller_proxy.init(cfg_mgr->current());
+    if (!m_current_controller_proxy.init(cfg_mgr->current())) {
+        #if (PICA_DRIVE_ENABLE_LOGGER == 1)
+            spdlog::info("BLDC: init current controller failed.");
+        #endif
+
+        return false;
+    }
 
     calcPhaseCurrentGain();
 
     // 初始化速度控制器
     m_speed_controller.emplace(static_cast<SpeedControllerVariant::ControllerType>(m_cfg.speed_controller_type), *this);
     
-    m_speed_controller.init(cfg_mgr->speed());
+    if (!m_speed_controller.init(cfg_mgr->speed())) {
+        #if (PICA_DRIVE_ENABLE_LOGGER == 1)
+                spdlog::info("BLDC: init speed controller failed.");
+        #endif
+
+        return false;
+    }
 
     return true;
 }
 
 bool BLDC::update(hrt_absnano now)
 {
-    float torque;
+    float torque = 0.f;
 
     if (!m_speed_controller.update(&torque, now)) {
         // 
@@ -48,6 +86,10 @@ bool BLDC::update(hrt_absnano now)
     }
 
     if (!m_current_controller_proxy.update(torque, now)) {
+        #if (PICA_DRIVE_ENABLE_LOGGER == 1)
+                spdlog::info("BLDC: update current controller failed.");
+        #endif
+
         return false;
     }
 

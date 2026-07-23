@@ -55,7 +55,7 @@ public:
      * @return true 
      * @return false 
      */
-    bool update(hrt_absnano ts_output);
+    bool update(float torque_sp, hrt_absnano ts_output);
 
     /**
      * @brief 更新输出(alpha-beta)

@@ -38,4 +38,6 @@ target_sources(picadrive
 
 target_link_libraries(picadrive
     PUBLIC
+        loguru
+        fmt
 )

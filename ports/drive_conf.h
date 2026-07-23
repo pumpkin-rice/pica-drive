@@ -31,7 +31,8 @@
  * @brief 电流环采样周期，s
  * 
  */
-#define PICA_DRIVE_CURRENT_MEASURE_PERIOD       (1.f/16e3f)
+// #define PICA_DRIVE_CURRENT_MEASURE_PERIOD       (1.f/16e3)
+#define PICA_DRIVE_CURRENT_MEASURE_PERIOD       (1.f/1e6f)
 /**
  * @brief 速度环运行周期，s
  * 
@@ -50,5 +51,13 @@
  * 
  */
 #define PICA_DRIVE_ENABLE_DEBUG     1
+
+#if (PICA_DRIVE_ENABLE_DEBUG == 1)
+    /**
+     * @brief 是否启用 LOGGER
+     * 
+     */
+    #define PICA_DRIVE_ENABLE_LOGGER    1
+#endif
 
 #endif /* !_PICA_DRIVE_CONF_H_ */
