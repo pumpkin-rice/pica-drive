@@ -31,14 +31,14 @@ bool SpeedControllerPI::init(void *cfg)
     return true;
 }
 
-bool SpeedControllerPI::update(float *torque_ref, hrt_absnano now)
+bool SpeedControllerPI::update(hrt_absnano now, float *torque_ref)
 {
     const auto& cfg_motor = m_motor.m_cfg;
 
     float vel_est = m_motor.m_velocity_est;
     float vel_des = m_motor.m_velocity_sp;
     float torque = m_motor.m_torque_sp;
-    const float Tlim = m_motor.getMaxAvailableTorque();
+    const float Tlim = m_motor.calcMaxAvailableTorque();
 
     // 位置控制
     float gain_scheduling_multiplier = 1.0f;
@@ -47,7 +47,7 @@ bool SpeedControllerPI::update(float *torque_ref, hrt_absnano now)
     float vel_gain = m_cfg.vel_gain;
     float vel_integrator_gain = m_cfg.vel_integrator_gain;
 
-    if (Motor::ControlMode::kPosition <= m_motor.getControlMode()) {
+    if (Motor::ControlMode::kPosition <= m_motor.controlMode()) {
         float pos_err = m_motor.m_position_sp - m_motor.m_position_est;
         if (!std::isfinite(pos_err)) {
             // TODO: error
@@ -115,7 +115,7 @@ bool SpeedControllerPI::update(float *torque_ref, hrt_absnano now)
     // }
 
     float vel_err = 0.f;
-    if (Motor::ControlMode::kVelocity <= m_motor.getControlMode()) {
+    if (Motor::ControlMode::kVelocity <= m_motor.controlMode()) {
         if (!std::isfinite(vel_est)) {
             // TODO: error
             return false;
@@ -129,7 +129,7 @@ bool SpeedControllerPI::update(float *torque_ref, hrt_absnano now)
     }
 
     // 力矩模式下，速度限制
-    if (Motor::ControlMode::kVelocity > m_motor.getControlMode()
+    if (Motor::ControlMode::kVelocity > m_motor.controlMode()
                 && cfg_motor.torque_mode_vel_limit_enabled) {
         if (!std::isfinite(vel_est)) {
             // TODO: error
@@ -150,7 +150,7 @@ bool SpeedControllerPI::update(float *torque_ref, hrt_absnano now)
     }
 
     // Velocity integrator (behaviour dependent on limiting)
-    if (Motor::ControlMode::kVelocity > m_motor.getControlMode()) {
+    if (Motor::ControlMode::kVelocity > m_motor.controlMode()) {
         m_vel_integrator_torque = 0.f;
 
     } else {

@@ -27,20 +27,28 @@ namespace motor
 namespace bldc
 {
 
+namespace current
+{
+
+enum Type : int8_t
+{
+    kUnknow = 0,
+    kFOC,
+
+    // 仅用于初始化检测阶段，无需多态实现
+    // kPhaseInductanceMeasurer,
+    // kPhaseResistanceMeasurer,
+
+    _kTypeMax,
+};
+    
+} // namespace current
+
+
 class CurrentControllerVariant
 {
 public:
-    enum Type
-    {
-        kUnknow = 0,
-        kFOC,
-
-        // 仅用于初始化检测阶段，无需多态实现
-        // kPhaseInductanceMeasurer,
-        // kPhaseResistanceMeasurer,
-
-        _kTypeMax,
-    };
+    using Type = current::Type;
 
     void *emplace(Type type, BLDC& bldc)
     {
@@ -48,18 +56,18 @@ public:
         {
 #define XX(_l, _T) case (_l): m_type = type; return &m_variant.emplace<_T>(bldc)
         
-        XX(kFOC, FOC);
+        XX(Type::kFOC, FOC);
 
 #undef XX
 
-        case kUnknow:
+        case Type::kUnknow:
         default:
             return nullptr;
         }
     }
 
 private:
-    Type m_type{kUnknow};
+    Type m_type{Type::kUnknow};
     std::variant<std::monostate, FOC, PhaseInductanceMeasurer, PhaseResistanceMeasurer> m_variant;
 };
     

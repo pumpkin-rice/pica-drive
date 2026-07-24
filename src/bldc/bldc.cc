@@ -18,7 +18,6 @@
 
 #if (PICA_DRIVE_ENABLE_LOGGER == 1)
 
-// #include "loguru/loguru.hpp"
 #include "spdlog/spdlog.h"
 
 #endif
@@ -36,19 +35,21 @@ bool BLDC::init()
         #endif
     }
 
-    spdlog::info("BLDC: ConfigMgr addr at {}, motor at {}, type {}, current controller {}, speed controller {}, control mode {}",
-            (uint64_t)ConfigMgr().GetInstance(),
-            (uint64_t)(ConfigMgr().GetInstance()->motor()),
-            this->type(),
-            m_cfg.current_controller_type,
-            m_cfg.speed_controller_type,
-            m_cfg.motor_control_mode
-    );
+    #if (PICA_DRIVE_ENABLE_LOGGER == 1)
+        spdlog::info("BLDC: ConfigMgr addr at {}, motor at {}, type {}, current controller {}, speed controller {}, control mode {}",
+                (uint64_t)ConfigMgr().GetInstance(),
+                (uint64_t)(ConfigMgr().GetInstance()->motor()),
+                this->type(),
+                m_cfg.current_controller_type,
+                m_cfg.speed_controller_type,
+                m_cfg.motor_control_mode
+        );
 
-    spdlog::info("BLDC: addr of foc({}), addr of ctx in proxy({})", 
-        (uint64_t)&m_current_controller, 
-        (uint64_t)m_current_controller_proxy.getInstance<FOC>()
-    );
+        spdlog::info("BLDC: addr of foc({}), addr of ctx in proxy({})", 
+            (uint64_t)&m_current_controller, 
+            (uint64_t)m_current_controller_proxy.getInstance<FOC>()
+        );
+    #endif
     
     m_pole_pairs = m_cfg.pole_pairs;
 
@@ -63,7 +64,7 @@ bool BLDC::init()
     calcPhaseCurrentGain();
 
     // 初始化速度控制器
-    m_speed_controller.emplace(static_cast<SpeedControllerVariant::ControllerType>(m_cfg.speed_controller_type), *this);
+    m_speed_controller.emplace(static_cast<speed::Type>(m_cfg.speed_controller_type), *this);
     
     if (!m_speed_controller.init(cfg_mgr->speed())) {
         #if (PICA_DRIVE_ENABLE_LOGGER == 1)
@@ -80,8 +81,7 @@ bool BLDC::update(hrt_absnano now)
 {
     float torque = 0.f;
 
-    if (!m_speed_controller.update(&torque, now)) {
-        // 
+    if (!m_speed_controller.update(now, &torque)) {
         return false;
     }
 
@@ -96,7 +96,7 @@ bool BLDC::update(hrt_absnano now)
     return true;
 }
 
-float BLDC::getEffectiveCurrentLimit()
+float BLDC::calcEffectiveCurrentLimit()
 {
     float current_limit = m_cfg.current_limit; // Configured limit
 
@@ -119,7 +119,7 @@ float BLDC::getEffectiveCurrentLimit()
 	return current_limit;
 }
 
-float BLDC::getMaxAvailableTorque()
+float BLDC::calcMaxAvailableTorque()
 {
     float torque;
 

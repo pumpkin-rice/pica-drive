@@ -160,6 +160,17 @@ public:
         return m_v_alpha_beta_final;
     }
 
+    const float *dutyCycle() final { return m_duty_cycle; }
+
+    int8_t getSVMSector() const { return m_svm_sector; }
+
+    float calcMaxAvailableTorque() final;
+    float calcEffectiveCurrentLimit();
+
+    int16_t type() const
+    {
+        return m_cfg.motor_type;
+    }
 
     template<class T>
     T *currentController()
@@ -167,37 +178,19 @@ public:
         return m_current_controller_proxy.getInstance<T>();
     }
 
-    const float *dutyCycle() final { return m_duty_cycle; }
-
-    int8_t getSVMSector() const { return m_svm_sector; }
-
-    float getMaxAvailableTorque() final;
-    float getEffectiveCurrentLimit();
-
-    int16_t type() const
-    {
-        return m_cfg.motor_type;
-    }
-
-    ControlMode getControlMode() const final
+    ControlMode controlMode() const final
     {
         return (ControlMode)m_cfg.motor_control_mode;
     }
 
     bool do_checks() { return true; }
 
-    bool arm(void *current_controller) { return true; }
+    bool arm(void *current_controller) final { return true; }
     bool disarm() final;
 
 #if (PICA_DRIVE_ENABLE_DEBUG == 1)
 
-    float getPhaseCurrentRevGain() const { return m_phase_current_rev_gain; }
-
-    template<class T>
-    T *getCurrentController()
-    {
-        return m_current_controller_proxy.getInstance<T>();
-    }
+    float phaseCurrentRevGain() const { return m_phase_current_rev_gain; }
     
 #endif
 
@@ -217,7 +210,6 @@ private:
     }
 
     bool measurePhaseResistance(float test_current, float max_voltage);
-
 
 private:
     Config m_cfg;

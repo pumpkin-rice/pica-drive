@@ -112,9 +112,9 @@ void BLDCFixture::init()
     auto& motor = m_cfg.motor;
 
     motor.motor_type = BLDC::kHighCurrent,
-    motor.current_controller_type = CurrentControllerVariant::kFOC,
+    motor.current_controller_type = current::kFOC,
     motor.motor_control_mode = int8_t(pica::Motor::ControlMode::kVelocity);
-    motor.speed_controller_type = SpeedControllerVariant::kPI;
+    motor.speed_controller_type = speed::kPI;
 
     motor.pole_pairs        = 5;
     motor.phase_inductance  = 0.5 * 0.64e-3,
@@ -209,9 +209,9 @@ TEST_F(BLDCFixture, SpeedPI)
         m_bldc.do_checks();
         
         // 更新电机控制环参数
-        m_bldc.setTorque(m_torque);
-        m_bldc.setPosition(m_position);
-        m_bldc.setVelocity(m_speed);
+        m_bldc.setTorqueSetpoint(m_torque);
+        m_bldc.setPositionSetpoint(m_position);
+        m_bldc.setVelocitySetpoint(m_speed);
 
         m_bldc.update(m_timestamp);
 

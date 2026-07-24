@@ -54,7 +54,7 @@ public:
      * @return true 
      * @return false 
      */
-    bool update(float *torque_ref, hrt_absnano now);
+    bool update(hrt_absnano now, float *torque_ref);
 
     void reset()
     {

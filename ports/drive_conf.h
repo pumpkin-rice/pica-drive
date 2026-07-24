@@ -52,12 +52,16 @@
  */
 #define PICA_DRIVE_ENABLE_DEBUG     1
 
-#if (PICA_DRIVE_ENABLE_DEBUG == 1)
-    /**
-     * @brief 是否启用 LOGGER
-     * 
-     */
-    #define PICA_DRIVE_ENABLE_LOGGER    1
-#endif
+/**
+ * @brief 已废弃，通过 CMake 定义
+ * 
+ */
+// #if (PICA_DRIVE_ENABLE_DEBUG == 1)
+//     /**
+//      * @brief 是否启用 LOGGER
+//      * 
+//      */
+//     #define PICA_DRIVE_ENABLE_LOGGER    1
+// #endif
 
 #endif /* !_PICA_DRIVE_CONF_H_ */
