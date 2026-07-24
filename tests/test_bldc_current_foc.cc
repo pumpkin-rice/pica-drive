@@ -9,22 +9,53 @@
  * 
  */
 
-#include "motor/bldc.hpp"
+#include "bldc/bldc.hpp"
+#include "bldc/config_manager.hpp"
 
 #include <gtest/gtest.h>
 #include <cmath>
 #include <algorithm>
 
-using namespace pica::motor;
+using namespace pica::motor::bldc;
+
+#include "hrt.h"
+#include "utils/singleton.hpp"
+
+class AbsoultTime
+{
+public:
+    /**
+     * @brief Construct a new Absoult Time object
+     * 
+     * @param[in] tick2sec 
+     */
+    AbsoultTime(double tick2sec) : m_tick2sec(tick2sec) {}
+
+    AbsoultTime() = default;
+
+    hrt_absnano update() { return ++m_now; }
+
+    hrt_absnano tick() const { return m_now; }
+    double second() const { return m_now * m_tick2sec; }
+    double period() const { return m_tick2sec; }
+
+private:
+    hrt_absnano m_now{0};
+    double m_tick2sec{1/48e3};
+};
+
+using AbsoultTimeSingle = pica::Singleton<AbsoultTime>;
 
 class BLDCFixture : public ::testing::Test
 {
 public:
     void SetUp() override
     {
-        initMotorConfig();
+        ConfigMgr::GetInstance()->init(&m_cfg);
+
+        initConfig();
         
-        m_bldc.init(&m_cfg);
+        m_bldc.init();
     }
 
     void TearDown() override
@@ -39,17 +70,14 @@ public:
     void constTorque();
 
 private:
-    void initMotorConfig();
+    void initConfig();
 
 protected:
-    Config m_cfg;
+    ConfigManager::Flash m_cfg;
     BLDC m_bldc;
 
     uint64_t m_tick{0};
-    double m_second_per_tick{0.f}; /*!< s/tick */
-
-    double m_ts_now{0};
-    double m_ts_last{0};
+    double m_second{0.};
 
     float m_freq{0.f};
 
@@ -67,14 +95,13 @@ protected:
 
 void BLDCFixture::sample()
 {
-        // 更新时间
-    ++m_tick;
-    m_ts_last = m_ts_now;
-    m_ts_now = m_tick * m_second_per_tick;
+    // 更新时间
+    m_tick = AbsoultTimeSingle::GetInstance()->update();
+    m_second = AbsoultTimeSingle::GetInstance()->second();
 
     m_vbus = 24;
 
-    float angle = m_ts_now * m_freq;
+    float angle = m_second * m_freq;
 
     std::array<float, 3> voltage_shunt = {
         std::cosf(angle),
@@ -104,25 +131,27 @@ void BLDCFixture::sample()
     m_position = 0.f;
 }
 
-void BLDCFixture::initMotorConfig()
+void BLDCFixture::initConfig()
 {
-    m_cfg.initDefaultValue();
+    auto& motor = m_cfg.motor;
 
-    m_cfg.motor_type = BLDC::HIGH_CURRENT;
-    m_cfg.current_controller_type = BLDC::CurrentControllerType::FieldOrientedControl,
+    motor.motor_type = BLDC::kHighCurrent;
+    motor.current_controller_type = BLDC::CurrentControllerType::kFOC,
 
-    m_cfg.pole_pairs        = 5;
-    m_cfg.phase_inductance  = 0.5 * 0.64e-3,
-    m_cfg.phase_resistance  = 0.5 * 0.57,
-    m_cfg.shunt_conductance = 1/50e-3; // 50mR
-    m_cfg.torque_constant   = 0.0591758042f;
-    m_cfg.current_limit     = 7.81;
+    motor.pole_pairs        = 5;
+    motor.phase_inductance  = 0.5 * 0.64e-3,
+    motor.phase_resistance  = 0.5 * 0.57,
+    motor.shunt_conductance = 1/50e-3; // 50mR
+    motor.torque_constant   = 0.0591758042f;
+    motor.current_limit     = 7.81;
 
     // 时间常数
-    float Tq = m_cfg.phase_inductance / m_cfg.phase_resistance;
-    float Td = m_cfg.phase_inductance / m_cfg.phase_resistance;
+    float Tq = motor.phase_inductance / motor.phase_resistance;
+    float Td = motor.phase_inductance / motor.phase_resistance;
 
-    m_cfg.current_controller_bandwidth = 2 * M_PI / fminf(Tq, Td);
+    motor.current_controller_bandwidth = 2 * M_PI / fminf(Tq, Td);
+
+    motor.speed_controller_type = speed::kPI;
 }
 
 void BLDCFixture::freshOutput()
@@ -145,23 +174,24 @@ TEST_F(BLDCFixture, ConstTorque)
 
     for (int i = 0; i < 1000*10; i++)
     {
-        double ts_diff = m_ts_now - m_ts_last;
-
         this->sample();
 
         m_bldc.sampleBusVoltageHandler(m_vbus);
         m_bldc.sampleEncoderHandler(m_theta_mach, m_omega_mach);
-        m_bldc.sampleCurrentHandler(m_voltage_shunt);
+        m_bldc.sampleCurrentHandler(m_voltage_shunt, m_tick);
         
         m_bldc.do_checks();
 
-        m_bldc.setTorque(m_torque);
+        // 更新电机控制环参数
+        m_bldc.setTorqueSetpoint(m_torque);
+        m_bldc.setPositionSetpoint(m_position);
+        m_bldc.setVelocitySetpoint(m_speed);
 
-        m_bldc.update(ts_diff);
+        m_bldc.update(m_tick);
 
-        m_bldc.sampleCurrentCalibratorHandler(NULL, ts_diff);
+        m_bldc.sampleCurrentCalibratorHandler(NULL, m_tick);
 
-        m_bldc.runControllerLoop(ts_diff, ts_diff, ts_diff);
+        m_bldc.run(m_tick);
 
         this->freshOutput();
     }

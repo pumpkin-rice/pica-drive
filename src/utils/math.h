@@ -53,6 +53,13 @@ constexpr T sign_hard(T v)
     return std::signbit(v) ? (T)(-1) : (T)(1);
 }
 
+// Modulo (as opposed to remainder), per https://stackoverflow.com/a/19288271
+inline int mod(const int dividend, const int divisor){
+    int r = dividend % divisor;
+    if (r < 0) r += divisor;
+    return r;
+}
+
 } // namespace pica
 
 #else

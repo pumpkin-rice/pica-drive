@@ -9,15 +9,14 @@
  * 
  */
 
-#include "motor/bldc.hpp"
-#include "speed_controller_pi.hpp"
+#include "bldc/bldc.hpp"
 
 #include <cmath>
 #include <algorithm>
 
-using namespace pica::motor;
+using namespace pica::motor::bldc;
 
-static float limitVelocity(const float vel_est, const float vel_gain, const float vel_limit, const float torque)
+static inline float limitVelocity(const float vel_est, const float vel_gain, const float vel_limit, const float torque)
 {
     float Tmax = vel_gain * (vel_limit - vel_est);
     float Tmin = vel_gain * (-vel_limit - vel_est);
@@ -25,58 +24,62 @@ static float limitVelocity(const float vel_est, const float vel_gain, const floa
     return std::clamp(torque, Tmin, Tmax);
 }
 
-bool SpeedControllerPI::update(float period)
+bool SpeedControllerPI::init(void *cfg)
 {
-    const auto& controller_param = m_cfg->pi;
-    auto& bldc = *dynamic_cast<BLDC *>(&m_motor);
+    m_cfg = *reinterpret_cast<Config*>(cfg);
 
-    float vel_est = bldc.getElectricalVelocityEst();
-    float vel_des = bldc.getElectricalVelocitySetpoint();
-    float torque = bldc.getTorqueSetpoint();
-    const float Tlim = bldc.getMaxAvailableTorque();
+    return true;
+}
+
+bool SpeedControllerPI::update(hrt_absnano now, float *torque_ref)
+{
+    const auto& cfg_motor = m_motor.m_cfg;
+
+    float vel_est = m_motor.m_velocity_est;
+    float vel_des = m_motor.m_velocity_sp;
+    float torque = m_motor.m_torque_sp;
+    const float Tlim = m_motor.calcMaxAvailableTorque();
 
     // 位置控制
     float gain_scheduling_multiplier = 1.0f;
 
-    float vel_lim = m_cfg->vel_limit;
-    float vel_gain = controller_param.vel_gain;
-    float vel_integrator_gain = controller_param.vel_integrator_gain;
+    float vel_lim = cfg_motor.vel_limit;
+    float vel_gain = m_cfg.vel_gain;
+    float vel_integrator_gain = m_cfg.vel_integrator_gain;
 
-    if (kPosition <= m_cfg->control_mode) {
-        float pos_err =
-                bldc.getElectricalPositionSetpoint()
-                    - bldc.getElectricalPositionEst();
+    if (Motor::ControlMode::kPosition <= m_motor.controlMode()) {
+        float pos_err = m_motor.m_position_sp - m_motor.m_position_est;
         if (!std::isfinite(pos_err)) {
             // TODO: error
 
             return false;
         }
 
-        vel_des += controller_param.pos_gain * pos_err;
+        vel_des += m_cfg.pos_gain * pos_err;
 
         // V 形增益调节器
         float pos_err_abs = std::abs(pos_err);
-        if (m_cfg->gain_scheduling_enabled
-                && pos_err_abs <= m_cfg->gain_scheduling_width)
+        if (m_cfg.gain_scheduling_enabled
+                && pos_err_abs <= m_cfg.gain_scheduling_width)
         {
             gain_scheduling_multiplier
-                    = pos_err_abs / m_cfg->gain_scheduling_width;
+                    = pos_err_abs / m_cfg.gain_scheduling_width;
         }
     }
 
     // Velocity limiting
-    if (m_cfg->vel_limit_enabled) {
+    if (cfg_motor.vel_limit_enabled) {
         vel_des = std::clamp(vel_des, -vel_lim, vel_lim);
     }
 
     // Check for overspeed fault (done in this module (controller) for cohesion with vel_lim)
-    if (m_cfg->overspeed_error_enabled) {
+    if (cfg_motor.overspeed_error_enabled) {
         if (!std::isfinite(vel_est)) {
             // TODO: error
             return false;
         }
 
-        if (std::abs(vel_est) > m_cfg->vel_limit_tolerance * vel_lim) {
+        if (std::abs(vel_est) > cfg_motor.vel_limit_tolerance * vel_lim) {
             // TODO: error overrspeed
             return false;
         }
@@ -112,7 +115,7 @@ bool SpeedControllerPI::update(float period)
     // }
 
     float vel_err = 0.f;
-    if (kVelocity <= m_cfg->control_mode) {
+    if (Motor::ControlMode::kVelocity <= m_motor.controlMode()) {
         if (!std::isfinite(vel_est)) {
             // TODO: error
             return false;
@@ -126,14 +129,14 @@ bool SpeedControllerPI::update(float period)
     }
 
     // 力矩模式下，速度限制
-    if (kVelocity > m_cfg->control_mode
-                && m_cfg->torque_mode_vel_limit_enabled) {
+    if (Motor::ControlMode::kVelocity > m_motor.controlMode()
+                && cfg_motor.torque_mode_vel_limit_enabled) {
         if (!std::isfinite(vel_est)) {
             // TODO: error
             return false;
         }
 
-        torque = limitVelocity(vel_est, vel_gain, m_cfg->vel_limit, torque);
+        torque = limitVelocity(vel_est, vel_gain, cfg_motor.vel_limit, torque);
     }
 
     // Torque limiting
@@ -147,7 +150,7 @@ bool SpeedControllerPI::update(float period)
     }
 
     // Velocity integrator (behaviour dependent on limiting)
-    if (kVelocity > m_cfg->control_mode) {
+    if (Motor::ControlMode::kVelocity > m_motor.controlMode()) {
         m_vel_integrator_torque = 0.f;
 
     } else {
@@ -156,16 +159,17 @@ bool SpeedControllerPI::update(float period)
 
         } else {
             m_vel_integrator_torque +=
-                ((vel_integrator_gain * gain_scheduling_multiplier) * period)
-                    * vel_err;
+                ((vel_integrator_gain * gain_scheduling_multiplier)
+                    * PICA_DRIVE_CURRENT_MEASURE_PERIOD)
+                * vel_err;
         }
 
         m_vel_integrator_torque = std::clamp(m_vel_integrator_torque,
-            -m_cfg->vel_integrator_limit,
-             m_cfg->vel_integrator_limit);
+            -m_cfg.vel_integrator_limit,
+             m_cfg.vel_integrator_limit);
     }
 
-    m_torque_ref = torque;
+    *torque_ref = torque;
 
     return true;
 }

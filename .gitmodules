@@ -1,0 +1,3 @@
+[submodule "third/matrix"]
+	path = third/matrix
+	url = https://github.com/PX4/PX4-Matrix.git
