@@ -121,7 +121,7 @@ inline AlphaBeta ipark(const DQ& dq, float theta)
 
     return {
         (c * dq(0)) - (s * dq(1)),
-        (s * dq(1)) + (c * dq(1)),
+        (s * dq(0)) + (c * dq(1)),
     };
 }
 

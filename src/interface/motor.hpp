@@ -80,7 +80,18 @@ public:
      */
     virtual bool run(hrt_absnano ts_output) = 0;
 
+    /**
+     * @brief 获取 PWM 占空比：[0..1]
+     * 
+     * @return const float* 
+     */
+    virtual const float *dutyCycle() = 0;
+
     virtual bool do_checks() = 0;
+
+    virtual bool arm(void *current_controller) = 0;
+    virtual bool disarm() = 0;
+    bool isArmed() const { return m_armed; };
 
     /**
      * @brief 电流采样更新
@@ -115,55 +126,57 @@ public:
      * @param[in] pos rad
      * @param[in] vel rad/s
      */
-    virtual void sampleEncoderHandler(float pos, float vel)
+    void sampleEncoderHandler(float pos, float vel)
     {
         m_position_est = pos * m_pole_pairs;
         m_velocity_est = vel * m_pole_pairs;
     }
 
+    /**
+     * @brief 获取电角度
+     * 
+     * @return float 
+     */
+    float positionEst() const { return m_position_est; }
+    /**
+     * @brief 获取电角速度
+     * 
+     * @return * float 
+     */
+    float velocityEst() const { return m_velocity_est; }
+
+    int polePairs() const { return m_pole_pairs; }
+
     float busVoltage() const { return m_bus_voltage_meas; }
 
-    virtual const float *dutyCycle() = 0;
+    virtual float calcMaxAvailableTorque() = 0;
 
-    virtual float getMaxAvailableTorque() = 0;
-
-    float getEffectiveCurrentLimit() const
+    float effectiveCurrentLimit() const
     {
         return m_effective_current_limit;
     }
 
-    virtual bool arm(void *current_controller) = 0;
-    virtual bool disarm() = 0;
-    bool isArmed() const { return m_armed; };
-
-    ControlMode getControlMode() const { return m_control_mode; }
+    virtual ControlMode controlMode() const = 0;
 
     const hrt_absnano& timestampCurrentMeas() const { return m_ts_current_meas; }
 
-    void setTorque(float t) { m_torque_sp = t; }
-    float torque() const { return m_torque_sp; }
+    void setTorqueSetpoint(float t) { m_torque_sp = t; }
+    float torqueSetpoint() const { return m_torque_sp; }
 
     /**
      * @brief Set the machincial Velocity object
      * 
      * @param[in] vel rad/s
      */
-    void  setVelocity(float vel) { m_velocity_sp = vel * m_pole_pairs; }
-    float velocity() const { return m_velocity_sp; }
+    void  setVelocitySetpoint(float vel) { m_velocity_sp = vel * m_pole_pairs; }
+    float velocitySetpoint() const { return m_velocity_sp; }
     /**
      * @brief Set the Position object
      * 
      * @param[in] pos rad
      */
-    void  setPosition(float pos) { m_position_sp = pos * m_pole_pairs; }
-    float position() const { return m_position_sp; }
-
-    /**
-     * @brief 获取速度环输出：参考力矩，Nm
-     * 
-     * @return float 
-     */
-    float torqueRef() const { return m_torque_ref; }
+    void  setPositionSetpoint(float pos) { m_position_sp = pos * m_pole_pairs; }
+    float positionSetpoint() const { return m_position_sp; }
 
 protected:
     bool m_armed{false};
@@ -174,8 +187,6 @@ protected:
     float m_velocity_sp{0.f}; /*!< electrical angular velocity, rad/s */
     float m_torque_sp{0.f};   /*!< Nm */
 
-    float m_torque_ref{NAN}; /*!< 速度环输出 */
-
     float m_position_est{NAN}; /*!< electrical angle, rad */
     float m_velocity_est{NAN}; /*!< electrical angular velocity, rad/s */
 
@@ -183,11 +194,9 @@ protected:
     float m_bus_current_meas; /*!< A */
     float m_power_watt; /*!< 当前功耗，W */
 
-    float m_effective_current_limit; /*!< 电流限制数值，A */
+    float m_effective_current_limit{10.f}; /*!< 电流限制数值，A */
 
     hrt_absnano m_ts_current_meas{0}; /*!< 电流采样时刻, tick */
-
-    ControlMode m_control_mode{-1};
 };
 
     

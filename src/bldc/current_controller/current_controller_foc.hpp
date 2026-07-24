@@ -88,8 +88,8 @@ public:
 private:
     Config m_cfg;
 
-    DQ m_vdq_sp;
-    DQ m_idq_sp;
+    DQ m_vdq_sp{NAN, NAN};
+    DQ m_idq_sp{NAN, NAN};
 
     AlphaBeta m_i_alpha_beta_meas;
     DQ m_idq_meas;

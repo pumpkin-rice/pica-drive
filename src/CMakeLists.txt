@@ -4,6 +4,10 @@ add_subdirectory(trajectory_planning)
 
 add_library(picadrive STATIC)
 
+if(PICADRIVE_ENABLE_LOGGER)
+    add_definitions(-DPICA_DRIVE_ENABLE_LOGGER=1)
+endif()
+
 set(SRC
     bldc/bldc.cc
     bldc/svpwm.c
@@ -36,6 +40,17 @@ target_sources(picadrive
         ${SRC}
 )
 
-target_link_libraries(picadrive
-    PUBLIC
-)
+if(PICADRIVE_ENABLE_LOGGER)
+    target_link_libraries(picadrive
+        PUBLIC
+            spdlog::spdlog_header_only
+    )
+
+else()
+    target_link_libraries(picadrive
+        PUBLIC
+    )
+
+endif()
+
+

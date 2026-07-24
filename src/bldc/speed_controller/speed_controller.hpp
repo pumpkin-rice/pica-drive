@@ -46,7 +46,7 @@ private:
         return reinterpret_cast<Derived*>(ctx)->init(cfg);
     }
 
-    static bool Update(void *ctx, float *toque_ref, hrt_absnano now)
+    static bool Update(void *ctx, hrt_absnano now, float *toque_ref)
     {
         return reinterpret_cast<Derived*>(ctx)->update(toque_ref,now);
     }
@@ -56,8 +56,6 @@ protected:
 
     hrt_absnano m_ts_update{0};
 };
-    
-} // namespace bldc
 
 class SpeedControllerProxy : Noncopyable
 {
@@ -98,7 +96,7 @@ public:
      */
     void reset() { m_reset(m_ctx); }
 
-    bool update(float *toque_ref, hrt_absnano now) { return m_update(m_ctx, toque_ref, now); }
+    bool update(hrt_absnano now, float *toque_ref) { return m_update(m_ctx, toque_ref, now); }
 
 private:
     void *m_ctx{nullptr};
@@ -107,6 +105,8 @@ private:
     ResetFuncType m_reset;
     UpdateFuncType m_update;
 };
+
+} // namespace bldc
 
 }
     

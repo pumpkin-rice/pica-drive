@@ -26,23 +26,31 @@ namespace motor
 namespace bldc
 {
 
+namespace speed
+{
+
+enum Type : int8_t
+{
+    kUnknow = -1,
+    kPI = 0, /*!< SpeedControllerPI */
+};
+
+} // namespace speed
+
+
 class SpeedControllerVariant
 {
 public:
-    enum ControllerType
-    {
-        kUnknow = 0,
-        kPI = 1, /*!< SpeedControllerPI */
-    };
+    using Type = speed::Type;
 
-    void *emplace(ControllerType type, BLDC& motor)
+    void *emplace(Type type, BLDC& motor)
     {
 #define XX(_label, _type) case (_label) : m_type = (_label); return &m_variant.emplace<_type>(motor);
 
         switch (type) {
-        XX(kPI, SpeedControllerPI);
+        XX(Type::kPI, SpeedControllerPI);
 
-        case ControllerType::kUnknow:
+        case Type::kUnknow:
         default:
             assert(false);
             return nullptr;
@@ -56,9 +64,9 @@ public:
 #define XX(_label, _type) case (_label) : return std::get<_type>(m_variant).init(cfg)
 
         switch (m_type) {
-        XX(kPI, SpeedControllerPI);
+        XX(Type::kPI, SpeedControllerPI);
 
-        case ControllerType::kUnknow:
+        case Type::kUnknow:
         default:
             assert(false);
             return false;
@@ -67,14 +75,14 @@ public:
 #undef XX
     }
 
-    bool update(float *torque_ref, hrt_absnano now)
+    bool update(hrt_absnano now, float *torque_ref)
     {
-#define XX(_label, _type) case (_label) : return std::get<_type>(m_variant).update(torque_ref, now)
+#define XX(_label, _type) case (_label) : return std::get<_type>(m_variant).update(now, torque_ref)
 
         switch (m_type) {
-        XX(kPI, SpeedControllerPI);
+        XX(Type::kPI, SpeedControllerPI);
 
-        case ControllerType::kUnknow:
+        case Type::kUnknow:
         default:
             return false;
         }
@@ -87,7 +95,7 @@ public:
 private:
 
 private:
-    ControllerType m_type;
+    Type m_type;
 
     std::variant<std::monostate, SpeedControllerPI> m_variant;
 };

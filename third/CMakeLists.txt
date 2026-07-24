@@ -1,4 +1,4 @@
 cmake_minimum_required(VERSION 3.22)
 
 add_subdirectory(matplotlib-cpp)
-add_subdirectory(matrix)
+# add_subdirectory(matrix)

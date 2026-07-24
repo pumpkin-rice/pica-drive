@@ -7,8 +7,8 @@
 ## 功能列表
 - [x] FOC 基础算法
 - [x] 基于 PI 的电流环
-- [ ] 基于 PI 的速度环
-- [ ] 位置环
+- [x] 基于 PI 的速度环
+- [x] 位置环
 - [ ] 轨迹生成
   - [ ] 基于定加速度的二次位置曲线
   - [ ] 基于 jerk 的速度平滑曲线
@@ -35,4 +35,14 @@ static_assert(sizeof(unsigned long long) == 8);
 template <> struct select_npy_type<unsigned long long> { const static NPY_TYPES type = NPY_UINT64; };
 ```
 
+### spdlog
 
+使用 simulink 进行仿真时，没有特殊接口可以获取内部状态，故引入 spdlog 接口。
+
+使用时可以参考 [BLDC-turtle_simulation](https://github.com/pumpkin-rice/BLDC-turtle_simulation) 中的用法：
+1. 在外部添加 spdlog 和 fmt 依赖
+2. 外部使用 CMake 启用变量 `PICADRIVE_ENABLE_LOGGER`
+```cmake
+set(PICADRIVE_ENABLE_LOGGER true)
+```
+该变量启用后会定义宏、启用 spdlog 接口。

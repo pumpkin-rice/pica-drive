@@ -73,7 +73,7 @@ private:
     void initConfig();
 
 protected:
-    ConfigManager::ConfigFlash m_cfg;
+    ConfigManager::Flash m_cfg;
     BLDC m_bldc;
 
     uint64_t m_tick{0};
@@ -151,7 +151,7 @@ void BLDCFixture::initConfig()
 
     motor.current_controller_bandwidth = 2 * M_PI / fminf(Tq, Td);
 
-    motor.speed_controller_type = SpeedControllerVariant::kPI;
+    motor.speed_controller_type = speed::kPI;
 }
 
 void BLDCFixture::freshOutput()
@@ -182,7 +182,10 @@ TEST_F(BLDCFixture, ConstTorque)
         
         m_bldc.do_checks();
 
-        m_bldc.setTorqueSetPoint(m_torque);
+        // 更新电机控制环参数
+        m_bldc.setTorqueSetpoint(m_torque);
+        m_bldc.setPositionSetpoint(m_position);
+        m_bldc.setVelocitySetpoint(m_speed);
 
         m_bldc.update(m_tick);
 
