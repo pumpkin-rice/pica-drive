@@ -5,11 +5,13 @@ add_subdirectory(trajectory_planning)
 add_library(picadrive STATIC)
 
 set(SRC
-    motor/config.cc
-    motor/pwm/svm.c
-    motor/bldc/bldc.cc
-    motor/bldc/current_controller_foc.cc
-    motor/bldc/speed_controller_pi.cc
+    bldc/bldc.cc
+    bldc/svpwm.c
+    bldc/svpwm.c
+    bldc/current_controller/current_controller_foc.cc
+    bldc/current_controller/phase_inductance_measurer.cc
+    bldc/current_controller/phase_resistance_measurer.cc
+    bldc/speed_controller/speed_controller_pi.cc
 )
 
 set_target_properties(picadrive
@@ -22,11 +24,12 @@ set_target_properties(picadrive
 target_include_directories(picadrive
     PUBLIC
         .
+        ${PROJECT_SOURCE_DIR}/third/matrix
+        ${PROJECT_SOURCE_DIR}/ports
+
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
-
-message(STATUS "")
 
 target_sources(picadrive
     PRIVATE

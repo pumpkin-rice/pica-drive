@@ -30,8 +30,8 @@ public:
         TRAJ_VEL_SMOOTHING = 1,
     };
 
-    TrajectoryPlannerVariant() = delete;
-    TrajectoryPlannerVariant(Mode mode = TRAJ_VEL_TRAP, float vel_max = 0.f, float accel_max = 0.f, float jerk_max = 0.f)
+    TrajectoryPlannerVariant() = default;
+    TrajectoryPlannerVariant(Mode mode, float vel_max = 0.f, float accel_max = 0.f, float jerk_max = 0.f)
     {
         reset(mode, vel_max, accel_max, jerk_max);
     }
@@ -50,8 +50,7 @@ public:
     {
         switch (mode) {
         case TRAJ_VEL_TRAP:
-            m_planner = VelocityTrapezoidal(vel_max, accel_max);
-            m_planner_ptr = &std::get<TRAJ_VEL_TRAP>(m_planner);
+            m_planner_ptr = &m_planner.emplace<VelocityTrapezoidal>(vel_max, accel_max);
             break;
         
         case TRAJ_VEL_SMOOTHING:
@@ -61,8 +60,9 @@ public:
     }
 
 private:
-    TrajectoryPlanner *m_planner_ptr{&std::get<TRAJ_VEL_TRAP>(m_planner)};
-    std::variant<VelocityTrapezoidal> m_planner{VelocityTrapezoidal(0, 0)};
+    TrajectoryPlanner *m_planner_ptr{nullptr};
+
+    std::variant<std::monostate, VelocityTrapezoidal> m_planner;
 };
 
 } // namespace pica

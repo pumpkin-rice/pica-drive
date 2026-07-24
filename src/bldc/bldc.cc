@@ -9,53 +9,57 @@
  * 
  */
 
-#include "motor/bldc.hpp"
+#include "bldc/bldc.hpp"
 #include "utils/math.h"
+#include "config_manager.hpp"
+
 #include <cmath>
 #include <algorithm>
 
-using namespace pica::motor;
+using namespace pica::motor::bldc;
 
-bool BLDC::init(Config *cfg)
+bool BLDC::init()
 {
-    if (!Motor::init(cfg)) {
-        return false;
-    }
+    auto cfg_mgr = ConfigMgr::GetInstance();
 
-    switch (cfg->current_controller_type) {
-    case CurrentControllerType::FieldOrientedControl:
-    {
-        m_current_controller =
-                &m_current_controller_variant.emplace<FOC>(*this);
-        setControllerLoopFunction(
-            m_current_controller->getControllerLoopFunc(),
-            m_current_controller
-        );
-        break;
-    }
+    m_cfg = *reinterpret_cast<Config*>(cfg_mgr->motor());
+    
+    m_pole_pairs = m_cfg.pole_pairs;
 
-    default:
-        return false;
-    }
-
-    m_current_controller->init(cfg);
+    m_current_controller_proxy.init(cfg_mgr->current());
 
     calcPhaseCurrentGain();
 
-    // // 初始化速度控制器
-    m_speed_controller = 
-            &m_speed_controller_variant.emplace<SpeedControllerPI>(*this);
-    m_speed_controller->init(&m_cfg->speed_controller_cfg);
+    // 初始化速度控制器
+    m_speed_controller.emplace(static_cast<SpeedControllerVariant::ControllerType>(m_cfg.speed_controller_type), *this);
+    
+    m_speed_controller.init(cfg_mgr->speed());
+
+    return true;
+}
+
+bool BLDC::update(hrt_absnano now)
+{
+    float torque;
+
+    if (!m_speed_controller.update(&torque, now)) {
+        // 
+        return false;
+    }
+
+    if (!m_current_controller_proxy.update(torque, now)) {
+        return false;
+    }
 
     return true;
 }
 
 float BLDC::getEffectiveCurrentLimit()
 {
-    float current_limit = m_cfg->current_limit; // Configured limit
+    float current_limit = m_cfg.current_limit; // Configured limit
 
 	// Hardware limit
-	if (BLDC::GIMBAL == m_cfg->motor_type) {
+	if (BLDC::kGimbal == type()) {
 		current_limit = fminf(current_limit, 0.98f * FRAC_1_SQRT3 * m_bus_voltage_meas); //gimbal motor is voltage control
 	
 	} else {
@@ -77,14 +81,14 @@ float BLDC::getMaxAvailableTorque()
 {
     float torque;
 
-    if (BLDC::ACIM == m_cfg->motor_type) {
+    if (BLDC::Type::kACIM == type()) {
         // torque = motor->effective_current_limit * param->torque_constant * axis_->acim_estimator_.rotor_flux_;
 
     } else {
-        torque = m_effective_current_limit * m_cfg->torque_constant;
+        torque = m_effective_current_limit * m_cfg.torque_constant;
     }
 
-    torque = std::clamp(torque, 0.f, m_cfg->torque_limit);
+    torque = std::clamp(torque, 0.f, m_cfg.torque_limit);
 
     return torque;
 }
@@ -102,9 +106,9 @@ void BLDC::calcPhaseCurrentGain()
 
     // 可测量最大电流 = 限幅 * ADC输出范围 * 电导
     float max_unity_gain_current =
-            k_margin * max_output_swing * m_cfg->shunt_conductance;
+            k_margin * max_output_swing * m_cfg.shunt_conductance;
     // 需用增益 = 最大可测电流 / 最大电流
-    float requested_gain = max_unity_gain_current / m_cfg->requested_current_range;
+    float requested_gain = max_unity_gain_current / m_cfg.requested_current_range;
 
     float actual_gain; /*!< 实际增益 */
     if (0) {
@@ -121,4 +125,21 @@ void BLDC::calcPhaseCurrentGain()
             * m_phase_current_rev_gain;
 
     m_max_dc_calib = 0.1f * m_max_allowed_current;
+}
+
+bool BLDC::measurePhaseResistance(float test_current, float max_voltage)
+{
+    PhaseResistanceMeasurer measurer{*this, test_current, max_voltage};
+
+    m_current_controller_proxy.reset(&measurer);
+
+    arm(&measurer);
+
+    return true;
+}
+
+bool BLDC::disarm()
+{
+
+    return true;
 }
