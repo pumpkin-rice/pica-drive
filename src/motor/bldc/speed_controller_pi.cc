@@ -9,7 +9,6 @@
  * 
  */
 
-#include "drive_conf.h"
 #include "motor/bldc.hpp"
 #include "speed_controller_pi.hpp"
 
@@ -26,7 +25,7 @@ static float limitVelocity(const float vel_est, const float vel_gain, const floa
     return std::clamp(torque, Tmin, Tmax);
 }
 
-bool SpeedControllerPI::update(hrt_absnano now, float *torque_ref)
+bool SpeedControllerPI::update(float period)
 {
     const auto& controller_param = m_cfg->pi;
     auto& bldc = *dynamic_cast<BLDC *>(&m_motor);
@@ -157,7 +156,7 @@ bool SpeedControllerPI::update(hrt_absnano now, float *torque_ref)
 
         } else {
             m_vel_integrator_torque +=
-                ((vel_integrator_gain * gain_scheduling_multiplier) * PICA_DRIVE_CURRENT_MEASURE_PERIOD)
+                ((vel_integrator_gain * gain_scheduling_multiplier) * period)
                     * vel_err;
         }
 
@@ -166,7 +165,7 @@ bool SpeedControllerPI::update(hrt_absnano now, float *torque_ref)
              m_cfg->vel_integrator_limit);
     }
 
-    *torque_ref = torque;
+    m_torque_ref = torque;
 
     return true;
 }

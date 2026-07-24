@@ -34,7 +34,7 @@ public:
      * @return true 
      * @return false 
      */
-    bool update(hrt_absnano now, float *torque) final;
+    bool update(float ts2last_running) final;
 
     void reset()
     {

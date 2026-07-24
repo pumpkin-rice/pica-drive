@@ -12,7 +12,6 @@
 #ifndef _PICA_DRIVE_MOTOR_CURRENT_CONTROLLER_HPP_
 #define _PICA_DRIVE_MOTOR_CURRENT_CONTROLLER_HPP_
 
-#include "hrt.h"
 #include "utils/noncopyable.hpp"
 
 namespace pica
@@ -28,7 +27,9 @@ class CurrentController : Noncopyable
 {
 public:
 
-    typedef bool (*ControllerLoopFuncType)(CurrentController *ctrl, hrt_absnano ts_next_pwmoutput);
+    typedef bool (*ControllerLoopFuncType)(CurrentController *ctrl,
+                float time2last_meas, float time2next_pwm_output,
+                float period);
 
     CurrentController(Motor& motor) : m_motor(motor)
     {
@@ -50,7 +51,7 @@ public:
      * @return true 
      * @return false 
      */
-    virtual bool update(float torque_sp, hrt_absnano now) { return true; };
+    virtual bool update() { return true; };
 
     virtual void updateGain() {};
     virtual void reset() {};

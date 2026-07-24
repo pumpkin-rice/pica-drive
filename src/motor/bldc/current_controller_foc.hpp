@@ -32,7 +32,7 @@ public:
 
     bool init(const Config *cfg) override;
 
-    bool update(float torque_sp, hrt_absnano now) final;
+    bool update() final;
 
     CurrentController::ControllerLoopFuncType getControllerLoopFunc() final
     {
@@ -64,15 +64,11 @@ public:
     const ControllerPI& getCurrentControllerQ() const { return m_pi_iq; }
 
 private:
-    /**
-     * @brief 运行电流环
-     * 
-     * @param[in] ctrl 
-     * @param[in] ts_next_pwmoutput 下一次 PWM 输出时刻
-     * @return true 
-     * @return false 
-     */
-    static bool Run(CurrentController *ctrl, hrt_absnano ts_next_pwmoutput);
+    static bool Run(CurrentController *ctrl,
+                    float time2last_meas, float time2next_pwm_output,
+                    float period);
+
+    bool generateCurrentSetpoint();
 
 private:
     DQ m_vdq_sp;
@@ -84,8 +80,6 @@ private:
     AlphaBeta m_v_alpha_beta_final;
 
     float m_idq_meas_filter_k; /*!< dq 电流滤波器参数 */
-
-    hrt_absnano m_update_ts{0}; /*!< 更新时刻, ns */
 
     struct ControllerPI
     {

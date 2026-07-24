@@ -17,7 +17,6 @@
 #include "motor/speed_controller.hpp"
 #include "utils/noncopyable.hpp"
 #include "utils/math.h"
-#include "hrt.h"
 #include <stdint.h>
 
 namespace pica
@@ -60,28 +59,9 @@ public:
      * @return true 
      * @return false 
      */
-    virtual bool update(hrt_absnano now) = 0;
+    virtual bool update(float period) = 0;
 
-    /**
-     * @brief 运行控制器
-     * 
-     * @param[in] time2meas 到电流、角度测量时间, s
-     * @param[in] time2pwm_output 当前时刻到下次 PWM 输出时间, s
-     * @return true 
-     * @return false 
-     */
-    bool run(hrt_absnano ts_next_pwmoutput)
-    {
-        return m_controller_loop_func(m_current_controller, ts_next_pwmoutput);
-    }
-
-    /**
-     * @brief 电流采样回调
-     * 
-     * @param[in] shunt_volt 
-     * @param[in] meas_ts 采样时间，ns
-     */
-    virtual void sampleCurrentHandler(const float shunt_volt[], hrt_absnano meas_ts) {}
+    virtual void sampleCurrentHandler(const float shunt_volt[]) {}
 
     virtual void sampleCurrentCalibratorHandler(const float *calibator, float measure_period) {}
 
@@ -100,6 +80,22 @@ public:
         float np = m_cfg->pole_pairs;
         m_position_est = angle_mach * np;
         m_velocity_est = angular_velocity_mach * np;
+    }
+
+    /**
+     * @brief 运行控制器
+     * 
+     * @param[in] time2meas 到电流、角度测量时间, s
+     * @param[in] time2pwm_output 当前时刻到下次 PWM 输出时间, s
+     * @return true 
+     * @return false 
+     */
+    bool runControllerLoop(float time2meas, float time2pwm_output,
+                    float period)
+    {
+        return m_controller_loop_func(m_current_controller,
+                    time2meas, time2pwm_output, period
+                );
     }
 
     /**
@@ -130,8 +126,6 @@ public:
     float setTorque(float t) { return m_torque_sp = t; }
     float getTorqueSetpoint() const { return m_torque_sp; }
 
-    const hrt_absnano& currentSampleTimestamp() const { return m_current_sample_ts; }
-
 protected:
     void setControllerLoopFunction(CurrentController::ControllerLoopFuncType func,
                                     CurrentController *ctrl)
@@ -154,8 +148,6 @@ protected:
 
     float m_bus_voltage_meas; /*!< 母线电压, V */
     float m_bus_current_meas; /*!< 母线电流, A */
-
-    hrt_absnano m_current_sample_ts; /*!< 电流采样时刻，ns */
 
     float m_effective_current_limit{10.f}; /*!< A */
     float m_max_allowed_current; /*!< A */

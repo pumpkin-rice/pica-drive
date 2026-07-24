@@ -15,7 +15,6 @@ target_link_directories(test_bldc_foc
 	PRIVATE
 		${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
 		${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
-        ${PROJECT_SOURCE_DIR}/ports
 )
 target_link_libraries(test_bldc_foc
 	PRIVATE

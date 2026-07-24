@@ -9,7 +9,6 @@
  * 
  */
 
-#include "drive_conf.h"
 #include "motor/bldc.hpp"
 
 #include <gtest/gtest.h>
@@ -146,21 +145,23 @@ TEST_F(BLDCFixture, ConstTorque)
 
     for (int i = 0; i < 1000*10; i++)
     {
+        double ts_diff = m_ts_now - m_ts_last;
+
         this->sample();
 
         m_bldc.sampleBusVoltageHandler(m_vbus);
         m_bldc.sampleEncoderHandler(m_theta_mach, m_omega_mach);
-        m_bldc.sampleCurrentHandler(m_voltage_shunt, PICA_DRIVE_CURRENT_MEASURE_PERIOD);
+        m_bldc.sampleCurrentHandler(m_voltage_shunt);
         
         m_bldc.do_checks();
 
         m_bldc.setTorque(m_torque);
 
-        m_bldc.update((hrt_absnano)(m_ts_now * 1e9));
+        m_bldc.update(ts_diff);
 
-        m_bldc.sampleCurrentCalibratorHandler(NULL, (hrt_absnano)(m_ts_now * 1e9));
+        m_bldc.sampleCurrentCalibratorHandler(NULL, ts_diff);
 
-        m_bldc.run((hrt_absnano)(m_ts_now * 1e9));
+        m_bldc.runControllerLoop(ts_diff, ts_diff, ts_diff);
 
         this->freshOutput();
     }
